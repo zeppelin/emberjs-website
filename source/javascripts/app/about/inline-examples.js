@@ -36,9 +36,37 @@ function generateViewerApp($elem, files) {
   });
 
   App.ApplicationController = Ember.Controller.extend({
+
+    showTabs: false,
+
+    isMobile: false,
+
+    isNotMobile: Ember.computed.not('isMobile'),
+
+    shouldShowTabs: Ember.computed.or('showTabs', 'isNotMobile'),
+
+    _init: Ember.on('init', function() {
+      $(window).on('resize', function() {
+        Ember.run.debounce(this, this.onResize, 200);
+      }.bind(this));
+      this.onResize();
+    }),
+
+    onResize: function() {
+      if ($(window).width() < 992) {
+        this.set('isMobile', true);
+      } else {
+        this.set('isMobile', false);
+      }
+    },
+
     actions: {
       selectTab: function(tab) {
         this.set('selectedTab', tab);
+        this.set('showTabs', false);
+      },
+      toggleTabs: function() {
+        this.toggleProperty('showTabs')
       }
     }
   });

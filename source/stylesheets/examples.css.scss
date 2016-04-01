@@ -4,6 +4,10 @@
 
 /* The CSS in this file is for the inline examples on the home page.  */
 
+.example-app {
+  @include clearfix;
+}
+
 .example-app pre, code {
   padding:0 3px 2px;
   font-size:12px;
@@ -46,6 +50,11 @@
   line-height: 16px;
   overflow: hidden;
   position: relative;
+  @include media(max-width $screen-sm-max) {
+    border-top: 1px solid #e0e0e0;
+    margin-top: 0.5em;
+    overflow: auto;
+  }
 }
 
 .example-arrow {
@@ -99,13 +108,33 @@
   border-right: 1px solid #e0e0e0;
   border-bottom: 1px solid #e0e0e0;
 }
+
+.CodeRay {
+  table-layout: fixed;
+}
+
 .CodeRay td.line-numbers {
   @include border-top-left-radius(0);
 }
 
-.example-app p {
-  margin-bottom: 20px;
+.example-tabs-toggle-mobile {
+  position: relative;
+  z-index: 1;
+  display: none;
+  width: 40px;
+  height: 32px;
+  background-image: url(data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjEwMjQiIHdpZHRoPSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+ICA8cGF0aCBkPSJNMCAxOTJ2MTI4aDc2OHYtMTI4aC03Njh6IG0wIDM4NGg3Njh2LTEyOGgtNzY4djEyOHogbTAgMjU2aDc2OHYtMTI4aC03Njh2MTI4eiIgLz48L3N2Zz4=);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: rgb(247, 247, 247);
+  background-position: 8px;
+  border: 1px solid rgb(221, 221, 221);
+  @include media (max-width $screen-sm-max ) {
+    display: block;
+  }
+  &:hover { border-bottom: 1px solid rgb(221, 221, 221); }
 }
+
 
 .example-tabs {
   .tabs-footer {
@@ -114,6 +143,8 @@
     background: #f7f7f7;
     border: 1px solid #ddd;
     border-top-color: #ccc;
+    position: relative;
+    z-index: 1;
   }
 
   a {
@@ -152,6 +183,7 @@
     &:hover:after, &.active:after {
       border-bottom-color: #bbb;
       background-color: #f7f7f7;
+      box-sizing: content-box;
     }
 
     &.active:before, &.active:after {
@@ -213,16 +245,55 @@
   }
 }
 
-.example-app {
-  margin: 70px 0;
+.example-tabs-active-tab-mobile {
+  display: none;
+  @include media(max-width $screen-sm-max) {
+    @include position(absolute, 0);
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-left: 50px;
+    line-height: 32px;
+    height: 32px;
+    background-color: #f7f7f7;
+    border: 1px solid rgb(221, 221, 221);
+  }
+}
 
-  p {
-    font-size: 1.2em;
-    line-height: 1.5em;
-    width: 700px;
-    margin-right: auto;
-    margin-left: auto;
-    margin-bottom: 55px;
+.example-tabs {
+  @include media(max-width $screen-sm-max) {
+    position: absolute;
+    margin-top: -1px;
+    a {
+      display: block;
+      padding: 1em;
+      margin: 0;
+      border-left: 1px solid rgb(221, 221, 221);
+      border-right: 1px solid rgb(221, 221, 221);
+      border-radius: 0;
+      min-width: 200px;
+      &:before,
+      &:after {
+        content: initial;
+      }
+      &:first-child {
+        margin: 0;
+      }
+    }
+  }
+}
+
+.prose {
+  @include span-columns(10);
+  @include shift(1);
+  @include omega;
+  font-size: 1.2em;
+  line-height: 1.5em;
+  margin-bottom: 55px;
+  @include media(max-width $screen-xs-max) {
+    @include span-columns(12);
+    @include shift(0);
   }
 }
 
@@ -264,14 +335,18 @@
   }
 }
 
+.example-viewer {
+  @include span-columns(12);
+  position: relative;
+}
+
 .example-viewer img {
   display: block;
   margin: 17px auto;
 }
 
 .example-output {
-  display: inline-block;
-  width: 100%;
+  @include span-columns(12);
   padding: 17px;
   background-color: white;
   @include border-radius(6px);
