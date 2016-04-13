@@ -20,16 +20,10 @@
       max-width: $screen-md;
     }
   }
-
-  // Create the large grid
-  // @include media(min-width $screen-lg) {
-  //   .section {
-  //     @include outer-container
-  //   }
-  // }
 }
 
 $hidpi-min-pixel-ratio: 1.3 !default;
+
 
 .emberconf {
   text-align: center;
