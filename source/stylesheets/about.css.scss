@@ -1,10 +1,37 @@
 @import "mixins/hidpi";
 
+.index {
+  .section {
+    width: auto;
+    margin: 0;
+    @include outer-container;
+    padding: 0px 15px;
+  }
+  // Create the small grid
+  @include media(min-width $screen-sm) {
+    .section {
+      max-width: $screen-sm;
+    }
+  }
+
+  // Create the medium grid
+  @include media(min-width $screen-md) {
+    .section {
+      max-width: $screen-md;
+    }
+  }
+}
+
+$hidpi-min-pixel-ratio: 1.3 !default;
+
+
 .emberconf {
   text-align: center;
+  @include span-columns(12);
 
   img {
     padding-top: 40px;
+    max-width: 100%;
   }
 
   a:hover {
@@ -27,6 +54,9 @@
   &:hover {
     border-bottom: none;
   }
+  @include media(max-width $screen-xs-max) {
+    display: none;
+  }
 }
 
 body.index, body.about {
@@ -39,6 +69,17 @@ body.index, body.about {
 
   .feature p {
     margin-top: 1.5em;
+    @include media(max-width $screen-sm) {
+      max-width: 320px;
+      @include margin(null auto null auto);
+    }
+  }
+
+  // images
+  .feature > div {
+    background-repeat: no-repeat;
+    background-position: 50%;
+    height: 184px;
   }
 
   @media (-webkit-min-device-pixel-ratio: $hidpi-min-pixel-ratio), (min-resolution: $hidpi-min-pixel-ratio), (min-resolution: $hidpi-min-pixel-ratio) {
@@ -55,20 +96,19 @@ body.index, body.about {
 
   .feature .handlebars {
     @include hidpi('about/ember-handlebars-sm', 'png');
-    width: 221px;
-    height: 177px;
   }
 
   .feature .structure {
     @include hidpi('about/ember-structure-sm', 'png');
-    width: 193px;
-    height: 184px;
   }
 
   .feature .productivity {
     @include hidpi('about/ember-productivity-sm', 'png');
-    width: 221px;
-    height: 184px;
+    @include omega;
+  }
+
+  .feature:nth-child(4) {
+    @include omega;
   }
 
   .getting-started {
@@ -78,10 +118,6 @@ body.index, body.about {
       border-top: 1px dotted #E5DBD6;
       font-size: 19px;
     }
-  }
-
-  p.prose {
-    width: 800px;
   }
 
   .section.gears {

@@ -1,6 +1,29 @@
+$screen-xs:                  480px !default;
+$screen-xs-min:              $screen-xs !default;
+$screen-phone:               $screen-xs-min !default;
+
+$screen-sm:                  768px !default;
+$screen-sm-min:              $screen-sm !default;
+$screen-tablet:              $screen-sm-min !default;
+
+$screen-md:                  992px !default;
+$screen-md-min:              $screen-md !default;
+$screen-desktop:             $screen-md-min !default;
+
+$screen-lg:                  1200px !default;
+$screen-lg-min:              $screen-lg !default;
+$screen-lg-desktop:          $screen-lg-min !default;
+$max-width:                  $screen-lg;
+
+$screen-xs-max:              ($screen-sm-min - 1) !default;
+$screen-sm-max:              ($screen-md-min - 1) !default;
+$screen-md-max:              ($screen-lg-min - 1) !default;
+
 @import 'compass';
 @import 'compass/reset';
 @import 'compass/typography/text/ellipsis';
+@import "bourbon";
+@import "neat";
 @import 'variables';
 @import 'mixins/hidpi';
 @import 'fonts';
@@ -15,6 +38,13 @@
 @import 'shared';
 @import 'survey';
 @import 'community';
+
+/* Calculated page dimensions. */
+$page-width: 960px;
+$col-width: 40px;
+$col-spacing: 20px;
+$sidebar-width: $col-width * 4 + $col-spacing * 3;
+$content-width: $page-width - $sidebar-width - $col-spacing * 2;
 
 @mixin width-for-columns($cols) {
   width: $cols * $col-width + ($cols - 1) * $col-spacing;
@@ -485,11 +515,12 @@ p {
 }
 
 #content-wrapper {
-  @include clearfix;
-  width: 960px;
-  padding: 0px 0px 20px 0px;
-  margin: 0 auto;
-  position: relative;
+  // TBR
+  // @include clearfix;
+  // width: 960px;
+  // padding: 0px 0px 20px 0px;
+  // margin: 0 auto;
+  // position: relative;
 
   &.grid {
     background-image: url('/images/grid.png');
@@ -545,6 +576,15 @@ p {
   text-indent: 100%;
   border-bottom: none;
   @include hidpi('about/header-text', png);
+  background-repeat: no-repeat;
+  background-size: contain !important;
+  background-position: 50%;
+  max-width: 100%;
+  @include media (max-width $screen-sm) {
+    margin-right: 15px;
+    margin-left: 15px;
+    width: auto;
+  }
 }
 
 #download {
@@ -627,28 +667,26 @@ p {
   @include clearfix;
 
   .feature {
-    @include width-for-columns(4);
-    float: left;
-    margin-left: $col-width + $col-spacing;
-    margin-right: $col-spacing;
+    @include span-columns(4);
+    text-align: center;
 
     img {
       margin-left: auto;
       margin-right: auto;
-      display: block;
+      display: inline-block;
+      max-width: 100%;
     }
-
-    p {
-      text-align: center;
+    @include media(max-width $screen-sm) {
+      @include span-columns(12);
     }
   }
 }
 
 #content .users.section {
   .surround {
-    width: 940px;
+    @include span-columns(12);
     margin: 0 auto;
-    padding-top: 19px;
+    @include padding(flex-gutter() flex-gutter() 0 flex-gutter());
 
     border-radius: 3px;
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 0 #fff;
@@ -749,9 +787,23 @@ p {
   }
 
   .user {
-    position: relative;
-    float: left;
-    width: 230px;
+    @include margin(null null flex-gutter() null);
+    @include span-columns(4);
+
+    // three items per row > smartphone
+    @include media(min-width $screen-sm) {
+      &:nth-child(3n) {
+        @include omega;
+      }
+    }
+
+    // two items per row on smartphones
+    @include media(max-width $screen-xs-max) {
+      @include span-columns(6);
+      &:nth-child(2n) {
+        @include omega;
+      }
+    }
 
     &.empty {
       display: block;
@@ -760,13 +812,19 @@ p {
     }
 
     a {
-      border-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      background: url('/images/about/user_bg.png') no-repeat;
       display: block;
-      height: 103px;
       margin-left: 20px;
-      width: 210px;
+      background-color: white;
+      text-align: center;
+      @include margin(null auto null auto);
+      @include border-radius(4px);
+      @include box-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+      border: 1px solid #ccc;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
     }
   }
 
@@ -775,10 +833,12 @@ p {
   }
 
   .listed {
-    float: left;
-    margin-left: $col-width * 9;
+    @include span-columns(12);
     margin-top: 20px;
     text-align: center;
+    .button {
+      display: inline-block;
+    }
   }
 }
 
@@ -786,14 +846,21 @@ p {
   .gear {
     text-align: center;
     height: 120px;
-
     .gearplus {
-      padding: 0px 30px 0px 30px;
-      display: inline;
-      line-height: 120px;
+      display: none;
+    }
+    > a {
+      @include media(min-width $screen-sm) {
+        @include span-columns(3);
+      }
+      @include media(max-width $screen-xs-max) {
+        margin-bottom: flex-gutter();
+        @include span-columns(6);
+        @include omega(2n);
+      }
       img {
-        vertical-align: top;
-        padding-top: 50px;
+        max-width: 100%;
+        height: auto;
       }
     }
   }
@@ -1260,8 +1327,10 @@ body.community_resources #content {
   .surround {
     width: 756px;
     margin: 0 auto;
-    padding-top: 19px;
-
+    @include padding(19px $gutter null $gutter);
+    @include media(max-width $screen-xs-max) {
+      @include padding(19px $gutter/4 null $gutter/4);
+    }
     a:hover {
       border: 0;
     }
@@ -1375,23 +1444,6 @@ body.community_resources #content {
     margin-left: $col-width * 9;
     margin-top: 20px;
     text-align: center;
-  }
-}
-
-.gears.section {
-  .gear {
-    text-align: center;
-    height: 120px;
-
-    .gearplus {
-      padding: 0px 30px 0px 30px;
-      display: inline;
-      line-height: 120px;
-      img {
-        vertical-align: top;
-        padding-top: 50px;
-      }
-    }
   }
 }
 

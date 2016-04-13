@@ -9,5 +9,5 @@ $(function() {
   });
 
   // Hack to force proper sizing
-  $('.bx-wrapper, .bx-window').css('width', 940);
+  // $('.bx-wrapper, .bx-window').css('width', 940);
 });
