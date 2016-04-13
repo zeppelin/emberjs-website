@@ -1,4 +1,5 @@
 require 'redcarpet'
+require 'active_support'
 require 'active_support/core_ext'
 
 Dir['./lib/*'].each { |f| require f }
@@ -14,11 +15,28 @@ set :markdown, :layout_engine => :erb,
 
 activate :directory_indexes
 activate :toc
+activate :sponsors
 activate :highlighter
+activate :column_balancer
+activate :ember do |config|
+  config.templates_root = 'app/builds/templates'
+end
 
 activate :api_docs,
-  default_class: 'Ember',
-  repo_url: 'https://github.com/emberjs/ember.js'
+  ember: {
+    name: "Ember",
+    default_class: "Ember",
+    root: "api",
+    data: "api",
+    repo_url: 'https://github.com/emberjs/ember.js'
+  },
+  data: {
+    name: "Ember Data",
+    default_class: "DS",
+    root: "api/data",
+    data: "data_api",
+    repo_url: "https://github.com/emberjs/data"
+  }
 
 ###
 # Build
@@ -45,9 +63,7 @@ page '/blog/feed.xml', layout: false
 # Pages
 ###
 
-page 'guides*', layout: :guide do
-  @guides = data.guides
-end
+page 'guides*', layout: :guide
 
 page 'community.html'
 
@@ -61,6 +77,9 @@ ignore '*_layout.erb'
 # Don't build API layouts
 ignore 'api/class.html.erb'
 ignore 'api/module.html.erb'
+
+# Don't build templates for example apps because they are embedded in other JS
+ignore 'javascripts/app/examples/*/templates/*'
 
 ###
 # Helpers
@@ -95,9 +114,38 @@ helpers do
     "<li#{class_name}><a href=\"#{url}\">#{name}</a></li>"
   end
 
-  def page_classes
+  def page_classes(page)
     classes = super
     return 'not-found' if classes == '404'
+
+    if page.responsive
+      classes += ' responsive'
+    else
+      classes += ' not-responsive'
+    end
+
     classes
   end
+
+  def load_example_files
+    root = Pathname(__FILE__).join('../source/javascripts/app/examples')
+    all_files = Hash.new {|hash, key| hash[key] = [] }
+
+    Dir[root.join('**/*.*').to_s].each do |path|
+      relative_path = Pathname(path).relative_path_from(root)
+      match_data = relative_path.to_s.match(%r{^([^/]+)/(.+)$})
+      name = match_data[1]
+      file = match_data[2]
+
+      all_files[name] << {name: file, contents: File.read(path)}
+    end
+
+    all_files
+  end
 end
+
+###
+# Redirects (These must be last!)
+###
+
+activate :alias

@@ -1,28 +1,30 @@
+//= require_tree ./templates
+
 var App = Ember.Application.create({
   rootElement: '#builds-application'
 });
 
 App.Router.map(function() {
-  this.resource('release', function(){
-    this.route('latest');
-    this.route('daily');
-  });
-
-  this.resource('beta', function(){
-    this.route('latest');
-    this.route('daily');
-  });
-
-  this.resource('canary', function(){
-    this.route('latest');
-    this.route('daily');
-  });
-
+  this.route('release');
+  this.route('beta');
+  this.route('canary');
   this.route('tagged');
+});
+
+App.Router.reopen({
+  notifyGoogleAnalytics: Ember.on('didTransition', function() {
+    var url = this.get('url');
+
+    // Add a slash if neccesary
+    if (!/^\//.test(url)){ url = '/' + url; }
+
+    _gaq.push(['_trackPageview', '/builds' + url]);
+  })
 });
 
 App.CopyClipboardComponent = Ember.Component.extend({
   tagName: 'span',
+  hasFlash: ZeroClipboard.detectFlashSupport(),
 
   didInsertElement: function () {
     var clip = new ZeroClipboard(this.$('button'), {
@@ -43,293 +45,492 @@ App.CopyClipboardComponent = Ember.Component.extend({
         $(this).attr('disabled', 'disabled');
       });
     });
+
+    this.$('input').on('click', function() {
+      $(this).select();
+    });
   }
 });
 
 App.S3Bucket = Ember.Object.extend({
-
   files: [],
   isLoading: false,
 
   // Setup these as default values.
   // They can be overridden on create.
-  useSSL: false,
+  queryUseSSL: true,
+  objectUseSSL: false,
   delimiter: '/',
   bucket: 'builds.emberjs.com',
   endpoint: 's3.amazonaws.com',
 
-  protocol: function() {
-    return this.get('useSSL') ? 'https://' : 'http://';
-  }.property('useSSL'),
-
-  hostname: function(){
-    // Since the bucket has periods, the s3 wildcard cert won't work. Have to
-    // use a subdirectory.
-    return (!this.get('bucket')) ? this.get('endpoint') : this.get('endpoint') + '/' + this.get('bucket');
-  }.property('bucket','endpoint'),
-
-  delimiterParameter: function(){
+  delimiterParameter: Ember.computed('delimiter', function(){
     var delimiter = this.getWithDefault('delimiter','').toString();
     return (delimiter) ? 'delimiter=' + delimiter : '';
-  }.property('delimiter'),
+  }),
 
-  markerParameter: function(){
-    return 'marker=' + this.getWithDefault('marker','').toString();
-  }.property('marker'),
-
-  maxKeysParameter: function(){
+  maxKeysParameter: Ember.computed('maxKeys', function(){
     return 'max-keys=' + this.getWithDefault('maxKeys','').toString();
-  }.property('maxKeys'),
+  }),
 
-  prefixParameter: function(){
+  prefixParameter: Ember.computed('prefix', function(){
     return 'prefix=' + this.getWithDefault('prefix','').toString();
-  }.property('prefix'),
+  }),
 
-  baseUrl: function(){
-    return this.get('protocol') + this.get('hostname');
-  }.property('protocol', 'hostname'),
+  queryProtocol: Ember.computed('queryUseSSL', function() {
+    return this.get('queryUseSSL') ? 'https://' : 'http://';
+  }),
 
-  objectBaseUrl: function(){
-    return this.get('protocol') + this.get('bucket');
-  }.property('protocol', 'bucket'),
+  queryBaseUrl: Ember.computed('queryProtocol', 'endpoint', 'bucket', function(){
+    return this.get('queryProtocol') + this.get('endpoint') + '/' + this.get('bucket')
+  }),
 
+  objectProtocol: Ember.computed('objectUseSSL', function() {
+    return this.get('objectUseSSL') ? 'https://' : 'http://';
+  }),
 
-  queryParams: function(){
+  objectBaseUrl: Ember.computed('objectProtocol', 'bucket', function(){
+    return this.get('objectProtocol') + this.get('bucket');
+  }),
+
+  queryParams: Ember.computed('delimiterParameter', 'maxKeysParameter', 'prefixParameter', function(){
     return this.get('delimiterParameter')  + '&' +
-      this.get('markerParameter')     + '&' +
       this.get('maxKeysParameter')    + '&' +
       this.get('prefixParameter');
-  }.property('delimiterParameter','markerParameter','maxKeysParameter','prefixParameter'),
+  }),
 
-  url: function(){
-    return this.get('baseUrl') + '?' + this.get('queryParams');
-  }.property('baseUrl','queryParams'),
+  queryUrl: Ember.computed('queryBaseUrl', 'queryParams', function(){
+    return this.get('queryBaseUrl') + '?' + this.get('queryParams');
+  }),
 
-  filesPresent: function(){
+  filesPresent: Ember.computed('files.[]', function(){
     return this.get('files').length;
-  }.property('files.@each'),
+  }),
 
-  load: function(){
-    var self = this,
-    baseUrl = this.get('objectBaseUrl');
+  filterFiles: function(filter, ignoreFiles){
+    var files = this.get('files');
+    var ignoreFiles = Ember.A(ignoreFiles);
 
+    return files.filter(function(e) {
+      var name = e.get('name');
+      var ignored = ignoreFiles.any(function(f) { return name.indexOf(f) >= 0; });
+      var selected = filter.any(function(f) { return name.match(f); });
+
+      return !ignored && selected;
+    });
+  },
+
+  load: Ember.on('init', Ember.observer('queryUrl', function() {
+    var self = this;
     this.set('isLoading', true);
-    Ember.$.get(this.get('url'), function(data){
+
+    this.loadAllPages('', []).then(function(files) {
       self.set('isLoading', false);
-      self.set('response', data);
-
-      var contents = data.getElementsByTagName('Contents'),
-      length   = contents.length,
-      files    = [];
-
-      for(var i = 0; i < length; i++) {
-        var size = contents[i].getElementsByTagName('Size')[0].firstChild.data,
-        name = contents[i].getElementsByTagName('Key')[0].firstChild.data,
-        lastModified = new Date(contents[i].getElementsByTagName('LastModified')[0].firstChild.data);
-
-        files.push(
-          App.S3File.create({
-          name: name,
-          size: size,
-          lastModified: lastModified,
-          relativePath: name,
-          baseUrl: baseUrl
-        })
-        );
-      }
-
-      self.set('files', files.sort(function(a,b){
+      self.set('files', files.sort(function(a, b) {
         return b.lastModified - a.lastModified;
       }));
     });
-  }.observes('queryUrl').on('init')
+  })),
+
+  loadAllPages: function(marker, files) {
+    var self = this;
+    var baseUrl = this.get('objectBaseUrl');
+
+    return Ember.$.get(this.get('queryUrl') + '&marker=' + marker).then(function(data) {
+      var contents = data.getElementsByTagName('Contents');
+      var isTruncated = data.getElementsByTagName('IsTruncated')[0].firstChild.data === "true";
+      var length = contents.length;
+
+      self.set('response', data);
+
+      for(var i = 0; i < length; i++) {
+        var size = contents[i].getElementsByTagName('Size')[0].firstChild.data;
+        var name = contents[i].getElementsByTagName('Key')[0].firstChild.data;
+        var lastModified = new Date(contents[i].getElementsByTagName('LastModified')[0].firstChild.data);
+
+        files.push(
+          App.S3File.create({
+            name: name,
+            size: size,
+            lastModified: lastModified,
+            relativePath: name,
+            baseUrl: baseUrl
+          })
+        );
+      }
+
+      if (isTruncated) {
+        var lastFile = files[files.length - 1];
+        return self.loadAllPages(lastFile.get('name'), files);
+      } else {
+        return files;
+      }
+    });
+  }
 });
 
 App.S3File = Ember.Object.extend({
-  scriptTag: function(){
-    var escapedURL = Handlebars.Utils.escapeExpression(this.get('url'));
+  scriptTag: Ember.computed('url', function(){
+    var escapedURL = Ember.Handlebars.Utils.escapeExpression(this.get('url'));
 
-    return new Handlebars.SafeString('<script src="' + escapedURL + '"></script>').toString();
-  }.property('url'),
+    return new Ember.Handlebars.SafeString('<script src="' + escapedURL + '"></script>').toString();
+  }),
 
-  url: function(){
+  url: Ember.computed('baseUrl', 'relativePath', function(){
     return this.get('baseUrl') + '/' + this.get('relativePath');
-  }.property('baseUrl', 'relativePath')
+  })
 });
 
-App.BetaRoute = Ember.Route.extend({
-  redirect: function() { this.transitionTo('beta.latest'); }
-});
+App.Project = Ember.Object.extend();
 
-App.BetaLatestRoute = Ember.Route.extend({
-  setupController: function(controller, model) {
-    controller.set('currentFilter', '');
-    controller.set('model', model);
-    this.controllerFor('application').set('selectedProject', '');
-  },
-  model: function() {
-    return App.S3Bucket.create({title: 'Beta Builds', prefix: 'beta/'});
-  }
-});
+App.Project.reopenClass({
+  FIXTURES:
+    [ {
+      projectName: 'Ember',
+      baseFileName: 'ember',
+      projectFilter: [ /ember\./, /ember-template-compiler/ ],
+      projectRepo: 'emberjs/ember.js',
+      channel: "tagged"
+    }, {
+      projectName: 'Ember Data',
+      baseFileName: 'ember-data',
+      projectFilter: [ /ember-data\./ ],
+      projectRepo: 'emberjs/data',
+      channel: "tagged"
+    }, {
+      projectName: "Ember",
+      baseFileName: 'ember',
+      projectFilter: [ /ember\./, /ember-template-compiler/ ],
+      projectRepo: 'emberjs/ember.js',
+      initialVersion: "2.4.5",
+      initialReleaseDate: "2016-04-11",
+      lastRelease: "2.4.5",
+      futureVersion: "2.4.6",
+      channel: "lts",
+      date: "2016-04-11",
+      changelogPath: "CHANGELOG.md",
+      enableTestURL: true,
+      debugFileName: ".debug.js",
+      ignoreFiles: ['ember.js'],
+      installWithEmberCLI: '# Install Ember %s:\nbower install --save ember#v%s\n# Or, install the latest build of this channel which may include unreleased incremental changes:\nbower install --save ember#release'
+    }, {
+      projectName: "Ember",
+      baseFileName: 'ember',
+      projectFilter: [ /ember\./, /ember-template-compiler/ ],
+      projectRepo: 'emberjs/ember.js',
+      initialVersion: "2.5.0",
+      initialReleaseDate: "2016-04-11",
+      lastRelease: "2.5.0",
+      futureVersion: "2.5.1",
+      channel: "release",
+      date: "2016-04-11",
+      changelogPath: "CHANGELOG.md",
+      enableTestURL: true,
+      debugFileName: ".debug.js",
+      ignoreFiles: ['ember.js'],
+      installWithEmberCLI: '# Install Ember %s:\nbower install --save ember#v%s\n# Or, install the latest build of this channel which may include unreleased incremental changes:\nbower install --save ember#release'
+    }, {
+      projectName: "Ember",
+      baseFileName: 'ember',
+      projectFilter: [ /ember\./, /ember-template-compiler/ ],
+      projectRepo: 'emberjs/ember.js',
+      lastRelease: "2.6.0-beta.1",
+      futureVersion: "2.6.0-beta.2",
+      finalVersion: '2.6.0',
+      channel: "beta",
+      cycleEstimatedFinishDate: '2016-05-23',
+      date: "2016-04-11",
+      nextDate: "2016-04-18",
+      changelogPath: "CHANGELOG.md",
+      enableTestURL: true,
+      debugFileName: ".debug.js",
+      ignoreFiles: ['ember.js'],
+      installWithEmberCLI: '# Install Ember %s:\nbower install --save ember#v%s\n# Or, install the latest build of this channel which may include unreleased incremental changes:\nbower install --save ember#beta'
+    }, {
+      projectName: "Ember Data",
+      baseFileName: 'ember-data',
+      projectFilter: [ /ember-data\./ ],
+      projectRepo: 'emberjs/data',
+      lastRelease: "2.5.0",
+      futureVersion: "2.5.1",
+      channel: "release",
+      date: "2016-04-11",
+      changelogPath: "CHANGELOG.md",
+      debugFileName: ".js",
+      installWithEmberCLI: '# Install Ember-Data %s:\nnpm install --save-dev ember-data@%s\n# Or, install the latest build of this channel which may include unreleased incremental changes:\nnpm install --save-dev emberjs/data#release'
+    }, {
+      projectName: "Ember Data",
+      baseFileName: 'ember-data',
+      projectFilter: [ /ember-data\./ ],
+      projectRepo: 'emberjs/data',
+      lastRelease: "2.6.0-beta.1",
+      futureVersion: "2.6.0-beta.2",
+      finalVersion: '2.6.0',
+      channel: "beta",
+      date: "2016-04-12",
+      changelogPath: "CHANGELOG.md",
+      debugFileName: ".js",
+      installWithEmberCLI: '# Install Ember-Data %s:\nnpm install --save-dev ember-data@%s\n# Or, install the latest build of this channel which may include unreleased incremental changes:\nnpm install --save-dev emberjs/data#beta'
+    }, {
+      projectName: "Ember",
+      baseFileName: 'ember',
+      projectFilter: [ /ember\./, /ember-template-compiler/ ],
+      projectRepo: 'emberjs/ember.js',
+      channel: "canary",
+      enableTestURL: true,
+      debugFileName: ".debug.js",
+      ignoreFiles: ['ember.js'],
+      installWithEmberCLI: '# Install the latest Ember canary:\nbower install --save ember#canary'
+    }, {
+      projectName: "Ember Data",
+      baseFileName: 'ember-data',
+      projectFilter: [ /ember-data\./ ],
+      projectRepo: 'emberjs/data',
+      channel: "canary",
+      debugFileName: ".js",
+      installWithEmberCLI: '# Install the latest Ember-Data canary:\nnpm install --save-dev emberjs/data#master'
+    }],
 
-App.TabItemController = Ember.ObjectController.extend({
-  needs: ['application'],
-  isSelectedProject: function() {
-    return this.get('model.filter') === this.get('controllers.application.selectedProject');
-  }.property('controllers.application.selectedProject')
-});
+  all: function(channel){
+    var projects;
 
-App.ApplicationController = Ember.ObjectController.extend({
-  selectedProject: ''
-});
+    if (channel)
+      projects = this.FIXTURES.filterBy('channel', channel);
+    else
+      projects = this.FIXTURES;
 
-App.TabMixin = Ember.Mixin.create({
-  init: function() {
-    this._super();
-    this.set('currentFilter', '');
-  },
-  needs: ['application'],
-  currentFilter: '',
-  filters: [{
-    name: 'All',
-    filter: ''
-  }, {
-    name: 'Ember.Js',
-    filter: 'ember.',
-  }, {
-    name: 'Ember Data',
-    filter: 'ember-data.'
-  }, {
-    name: 'Ember Runtime',
-    filter: 'ember-runtime.'
-  }],
-  filteredFiles: function() {
-    var files = this.get('model.files'),
-        selectedFilter = this.get('currentFilter');
-
-    return files.filter(function(e) {
-      return e.get('name').indexOf(selectedFilter) !== -1;
+    return projects.map(function(obj) {
+      return App.Project.create(obj);
     });
-  }.property('currentFilter'),
-  ifFilteredFiles: true,
-  actions: {
-    setFilter: function(filterName) {
-      this.set('currentFilter', filterName);
-      this.set('ifFilteredFiles', this.get('filteredFiles').length > 0);
-      this.get('controllers.application').set('selectedProject', filterName);
+  },
+
+  find: function(channel, name) {
+    var allProjects = this.all(channel);
+
+    if (!name)
+      return allProjects;
+    else
+      return allProjects.filterBy('projectName', name);
+  },
+
+  findOne: function(channel, name) {
+    var results = this.find(channel, name);
+    if (results.length > 1) {
+      throw new Error('Expected one result from `find`, got '+results.length);
     }
+    return results[0];
   }
 });
 
-App.BetaLatestController = Ember.ObjectController.extend(App.TabMixin);
+App.BuildCategoryMixin = Ember.Mixin.create({
+  renderTemplate: function() {
+    this.render('build-list');
+  }
+});
 
-App.BetaDailyRoute = Ember.Route.extend({
-  setupController: function(controller, model) {
-    controller.set('currentFilter', '');
-    controller.set('model', model);
-    this.controllerFor('application').set('selectedProject', '');
-  },
+App.ApplicationController = Ember.Controller.extend({
+  isIndexActive: Ember.computed('currentRouteName', function(){
+    return this.isActiveChannel('index');
+  }),
+
+  isTaggedActive: Ember.computed('currentRouteName', function(){
+    return this.isActiveChannel('tagged');
+  }),
+
+  isChannelsActive: Ember.computed('currentRouteName', function(){
+    var self = this;
+    return !['index','tagged'].some(function(name){
+      return name === self.get('currentRouteName');
+    });
+  }),
+
+  isReleaseActive: Ember.computed('currentRouteName', function(){
+    return this.isActiveChannel('release');
+  }),
+
+  isBetaActive: Ember.computed('currentRouteName', function(){
+    return this.isActiveChannel('beta');
+  }),
+
+  isCanaryActive: Ember.computed('currentRouteName', function(){
+    return this.isActiveChannel('canary');
+  }),
+
+  isActiveChannel: function(channel){
+    return this.get('currentRouteName').indexOf(channel) !== -1;
+  }
+});
+
+App.IndexRoute = Ember.Route.extend({
   model: function() {
-    return App.S3Bucket.create({
-      title: 'Beta Builds',
-      delimiter: '',
-      prefix: 'beta/daily',
-      marker: 'beta/daily/' + moment().subtract('days', 14).format("YYYYMMDD"),
+    return Ember.RSVP.hash({
+      release: App.Project.findOne('release', 'Ember'),
+      beta: App.Project.findOne('beta', 'Ember'),
+      canary: App.Project.findOne('canary', 'Ember'),
+      lts: App.Project.findOne('lts', 'Ember')
     });
   }
 });
 
-App.BetaDailyController = Ember.ObjectController.extend(App.TabMixin);
+App.ProjectsMixin = Ember.Mixin.create({
+  projects: Ember.computed('channel', 'model', function(){
+    var projects = App.Project.find(this.get('channel')),
+        bucket   = this.get('model'),
+        self = this;
 
-App.CanaryRoute = Ember.Route.extend({
-  redirect: function() { this.transitionTo('canary.latest'); }
+    projects.forEach(function(project){
+      if (project.channel === 'beta'){
+        project.isEmberBeta = project.projectName === 'Ember';
+
+        [1,2,3,4,5].forEach(function(increment){
+          var versionParts = project.lastRelease.split('.');
+          var currentBetaNumber = parseInt(versionParts[versionParts.length - 1], 10);
+          project['beta' + increment + 'Completed'] = increment <= currentBetaNumber;
+          project['isBeta' + increment] = increment === currentBetaNumber;
+        });
+
+        var release = App.Project.find('release', project.projectName)[0];
+
+        // no releases exist for ember-data (yet)
+        if (release) {
+          project.lastStableVersion = release.initialVersion;
+          project.lastStableDate = release.initialReleaseDate;
+        }
+      }
+
+      project.files = bucket.filterFiles(project.projectFilter, project.ignoreFiles);
+      project.description = self.description(project);
+      project.lastReleaseDebugUrl = self.lastReleaseUrl(project.baseFileName, project.channel, project.lastRelease, project.debugFileName);
+      project.lastReleaseProdUrl  = self.lastReleaseUrl(project.baseFileName, project.channel, project.lastRelease, '.prod.js');
+      project.lastReleaseMinUrl   = self.lastReleaseUrl(project.baseFileName, project.channel, project.lastRelease, '.min.js');
+
+      if (project.enableTestURL) {
+        project.lastReleaseTestUrl  = self.lastReleaseUrl(project.baseFileName, project.channel, project.lastRelease, '-tests-index.html');
+      }
+
+      if (project.channel === 'canary') {
+        project.lastRelease = 'latest';
+      } else if (project.changelog !== 'false') {
+        project.lastReleaseChangelogUrl   = 'https://github.com/' + project.projectRepo + '/blob/v' + project.lastRelease + '/' + project.changelogPath;
+      }
+    });
+
+    return projects;
+  }),
+
+  description: function(project){
+    var lastRelease = project.lastRelease,
+        futureVersion = project.futureVersion,
+        value;
+
+    if (this.get('channel') === 'tagged') {
+      value = '';
+    } else if (lastRelease) {
+      value = 'The builds listed below are incremental improvements made since ' + lastRelease + ' and may become ' + futureVersion + '.'
+    } else if (futureVersion) {
+      value = 'The builds listed below are not based on a tagged release. Upon the next release cycle they will become ' + futureVersion + '.';
+    } else {
+      value = 'The builds listed below are based on the most recent development.';
+    }
+
+    return new Ember.Handlebars.SafeString(value);
+  },
+
+  lastReleaseUrl: function(project, channel, lastRelease, extension){
+    if (channel === 'canary')
+      return 'http://builds.emberjs.com/canary/' + project + extension;
+    else
+      return 'http://builds.emberjs.com/tags/v' + lastRelease + '/' + project + extension;
+  }
+
+
 });
 
-App.CanaryLatestRoute = Ember.Route.extend({
-  setupController: function(controller, model) {
-    controller.set('currentFilter', '');
-    controller.set('model', model);
-    this.controllerFor('application').set('selectedProject', '');
-  },
+App.CanaryRoute = Ember.Route.extend(App.BuildCategoryMixin, {
   model: function() {
     return App.S3Bucket.create({title: 'Canary Builds', prefix: 'canary/' });
   }
 });
 
-App.CanaryLatestController = Ember.ObjectController.extend(App.TabMixin);
+App.CanaryController = Ember.Controller.extend(App.ProjectsMixin, {
+  templateName: 'buildList',
+  channel: 'canary',
+  channelDescription: 'Canary builds are generated from each commit to the master branch of Ember and Ember-Data. These builds are not suitable for use in production, and may contain unstable features disabled behind a flag.'
+});
 
-App.CanaryDailyRoute = Ember.Route.extend(App.TabMixin, {
-  setupController: function(controller, model) {
-    controller.set('currentFilter', '');
-    controller.set('model', model);
-    this.controllerFor('application').set('selectedProject', '');
-  },
+App.BetaRoute = Ember.Route.extend(App.BuildCategoryMixin, {
   model: function() {
-    return App.S3Bucket.create({
-      title: 'Canary Builds',
-      delimiter: '',
-      prefix: 'canary/daily',
-      marker: 'canary/daily/' + moment().subtract('days', 14).format("YYYYMMDD"),
-    });
+    return App.S3Bucket.create({title: 'Beta Builds', prefix: 'beta/'});
   }
 });
 
-App.CanaryDailyController = Ember.ObjectController.extend(App.TabMixin);
-
-App.ReleaseRoute = Ember.Route.extend({
-  redirect: function() { this.transitionTo('release.latest'); }
+App.BetaController = Ember.Controller.extend(App.ProjectsMixin, {
+  templateName: 'buildList',
+  channel: 'beta',
+  includeReleasesInFileList: true,
+  channelDescription: 'The master branch of Ember and Ember-Data is promoted to beta every six weeks. Roughly each week, a new beta release is provided for evaluation. After six of these beta releases, a stable release is declared.'
 });
 
-App.ReleaseLatestController = Ember.ObjectController.extend(App.TabMixin);
-
-App.ReleaseLatestRoute = Ember.Route.extend({
-  setupController: function(controller, model) {
-    controller.set('currentFilter', '');
-    controller.set('model', model);
-    this.controllerFor('application').set('selectedProject', '');
-  },
+App.ReleaseRoute = Ember.Route.extend(App.BuildCategoryMixin, {
   model: function() {
     return App.S3Bucket.create({title: 'Release Builds', prefix: 'release/'});
   }
 });
 
-App.ReleaseDailyController = Ember.ObjectController.extend(App.TabMixin);
-
-App.ReleaseDailyRoute = Ember.Route.extend({
-  setupController: function(controller, model) {
-    controller.set('currentFilter', '');
-    controller.set('model', model);
-    this.controllerFor('application').set('selectedProject', '');
-  },
-  model: function() {
-    return App.S3Bucket.create({
-      title: 'Release Builds',
-      delimiter: '',
-      prefix: 'release/daily',
-      marker: 'release/daily/' + moment().subtract('days', 14).format("YYYYMMDD"),
-    });
-  }
+App.ReleaseController = Ember.Controller.extend(App.ProjectsMixin, {
+  templateName: 'buildList',
+  channel: 'release',
+  includeReleasesInFileList: true,
+  channelDescription: 'Release builds are production-ready versions of Ember and Ember-Data that have been through a six-week beta cycle.'
 });
 
 App.TaggedRoute = Ember.Route.extend({
   model: function() {
     var bucket = App.S3Bucket.create({
       title: 'Tagged Release Builds',
-      prefix: 'tags/',
+      prefix: 'tags/v',
       delimiter: '',
     });
     return bucket;
   }
 });
 
+App.TaggedController = Ember.Controller.extend(App.ProjectsMixin, {
+  channel: 'tagged'
+});
+
 /*
- * Handlebars Helpers
+ * Helpers
  */
-Ember.Handlebars.helper('format-bytes', function(bytes){
-  return (bytes / 1024).toFixed(2) + ' KB';
+
+App.FormatDateTimeHelper = Ember.Helper.helper(function(params) {
+  var date = params[0];
+  var format = params[1];
+  if (format) {
+    return moment(date).format(format);
+  } else {
+    return moment(date).fromNow();
+  }
 });
 
-Ember.Handlebars.helper('format-date-time', function(date) {
-  return moment(date).fromNow();
+App.PrintfHelper = Ember.Helper.helper(function(params) {
+  var template = params[0];
+  var value = params[1];
+  return template.replace(/%s/g, value);
 });
 
+App.ScriptTagHelper = Ember.Helper.helper(function(params) {
+  var url = params[0];
+  var escapedURL = Ember.Handlebars.Utils.escapeExpression(url);
+  return Ember.String.htmlSafe('<script src="' + escapedURL + '"></script>');
+});
+
+App.TagUrlPathHelper = Ember.Helper.helper(function(params) {
+  var url = params[0];
+  var pathIndex = url.indexOf('tags');
+  return url.slice(pathIndex);
+});
+
+App.ParamsHelper = Ember.Helper.helper(function(params) {
+  return params;
+});

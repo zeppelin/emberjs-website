@@ -41,5 +41,5 @@ $(function() {
     });
   }
 
-  $('.bx-wrapper, .bx-window').width(940);
+  // $('.bx-wrapper, .bx-window').width(940);
 });

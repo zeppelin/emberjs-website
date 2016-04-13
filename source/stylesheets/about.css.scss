@@ -1,24 +1,145 @@
+@import "mixins/hidpi";
+
+.index {
+  .section {
+    width: auto;
+    margin: 0;
+    @include outer-container;
+    padding: 0px 15px;
+  }
+  // Create the small grid
+  @include media(min-width $screen-sm) {
+    .section {
+      max-width: $screen-sm;
+    }
+  }
+
+  // Create the medium grid
+  @include media(min-width $screen-md) {
+    .section {
+      max-width: $screen-md;
+    }
+  }
+
+  // Create the large grid
+  // @include media(min-width $screen-lg) {
+  //   .section {
+  //     @include outer-container
+  //   }
+  // }
+}
+
+$hidpi-min-pixel-ratio: 1.3 !default;
+
+.emberconf {
+  text-align: center;
+  @include span-columns(12);
+
+  img {
+    padding-top: 40px;
+    max-width: 100%;
+  }
+
+  a:hover {
+    border-bottom: none;
+  }
+}
+
+.job-board-banner {
+  z-index: 99998;
+  position: absolute;
+  left: 20px;
+  width: 125px;
+  height: 170px;
+
+  text-decoration: none !important;
+  text-indent: -99999px;
+
+  @include hidpi('about/job-board-banner', png);
+
+  &:hover {
+    border-bottom: none;
+  }
+  @include media(max-width $screen-xs-max) {
+    display: none;
+  }
+}
+
 body.index, body.about {
-  background: url('/images/background-shades.png') no-repeat top center #faf4f1;
+  background: no-repeat top center #faf4f1;
+  background-image: url('/images/background-shades.png');
+  background-image: url('/images/background-shades.svg'), none; // See: http://css-tricks.com/svg-fallbacks/
+  @media screen and (min-width: 2000px) { // Stretch background width when wider than source image
+    background-size: 100% auto;
+  }
 
   .feature p {
     margin-top: 1.5em;
+    @include media(max-width $screen-sm) {
+      max-width: 320px;
+      @include margin(null auto null auto);
+    }
+  }
+
+  // images
+  .feature > div {
+    background-repeat: no-repeat;
+    background-position: 50%;
+    height: 184px;
+  }
+
+  @media (-webkit-min-device-pixel-ratio: $hidpi-min-pixel-ratio), (min-resolution: $hidpi-min-pixel-ratio), (min-resolution: $hidpi-min-pixel-ratio) {
+    .feature .handlebars {
+      background-size: 221px 210px !important;
+    }
+    .feature .structure {
+      background-size: 221px 210px !important;
+    }
+    .feature .productivity {
+      background-size: 221px 220px !important;
+    }
+  }
+
+  .feature .handlebars {
+    @include hidpi('about/ember-handlebars-sm', 'png');
+  }
+
+  .feature .structure {
+    @include hidpi('about/ember-structure-sm', 'png');
+  }
+
+  .feature .productivity {
+    @include hidpi('about/ember-productivity-sm', 'png');
+    @include omega;
+  }
+
+  .feature:nth-child(4) {
+    @include omega;
   }
 
   .getting-started {
     h2.sub {
       color: #F23818;
-      padding-top: 70px;
+      padding-top: 50px;
       border-top: 1px dotted #E5DBD6;
       font-size: 19px;
     }
   }
 
-  p.prose {
-    width: 800px;
-  }
-
   .section.gears {
     margin-top: 70px;
+  }
+
+  .install-ember-cli {
+    border-color: #fa6d55 !important;
+    border-width: 2px !important;
+
+    .line-numbers {
+      display: none;
+    }
+  }
+
+  #download .info {
+    text-align: center;
   }
 }

@@ -1,4 +1,19 @@
 @import "compass";
+@import "mixins/hidpi";
+
+// the builds page is an ember app inserted into the master layout, replicate styling
+// content -> builds page ( sidebar / subcontent )
+#subcontent {
+  @extend #content;
+}
+
+// styles applied to ul/ol under #content are not meant for #sidebar styling
+// this needs to be reset on builds page as the sidebar is nested inside the content
+#content #sidebar {
+  ul, ol {
+    margin: 0;
+  }
+}
 
 #builds-application {
   #sidebar {
@@ -11,8 +26,130 @@
     }
   }
 
+  #subcontent {
+    margin-left: 30px;
+    width: 770px;
+  }
+
+  .float-left-container {
+    float: left;
+  }
+
+  @media (-webkit-min-device-pixel-ratio: $hidpi-min-pixel-ratio), (min-resolution: $hidpi-min-pixel-ratio), (min-resolution: $hidpi-min-pixel-ratio) {
+    .feature .canary {
+      background-size: 198px 263px !important;
+    }
+    .feature .beta {
+      background-size: 198px 263px !important;
+    }
+    .feature .release {
+      background-size: 198px 263px !important;
+    }
+    .feature .lts {
+      background-size: 198px 263px !important;
+    }
+  }
+
+  .left {
+    float: left;
+  }
+
+  .right {
+    float: right;
+  }
+
+  .tiny-beta-image {
+    @include hidpi('builds/tiny_beta', 'png');
+    width: 48px;
+    height: 64px;
+    margin: 0 auto;
+    margin-top: 35px;
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+
+  .small-release-image {
+    @include hidpi('builds/small_release', 'png');
+    width: 99px;
+    height: 132px;
+    margin: 0 auto;
+  }
+
+  .release-progress {
+    display: table;
+    margin: 0 auto;
+    padding: 0.8em 0;
+  }
+
+  .beta-version {
+    margin-top: 5px;
+    text-align: center;
+    font-size: smaller;
+    color: rgb(138,89,52);
+  }
+
+  .beta-current-version {
+    margin-top: -5px;
+    color: rgb(178,133,91);
+    text-align: center;
+    font-size: x-small;
+  }
+
+  .release-version {
+    margin-top: 5px;
+    text-align: center;
+    font-weight: bolder;
+  }
+
+  .release-date {
+    margin-top: -2px;
+    text-align: center;
+    font-size: smaller;
+  }
+
+  .future-image {
+    @include opacity(0.35);
+  }
+
+  .clear {
+    clear: both;
+  }
+
+  .release-cycle-title {
+    text-align: center;
+    font-weight: bolder;
+  }
+
+  .feature .canary {
+    @include hidpi('builds/canary', 'png');
+    width: 198px;
+    height: 263px;
+    margin: 0 auto;
+  }
+
+  .feature .beta {
+    @include hidpi('builds/beta', 'png');
+    width: 198px;
+    height: 263px;
+    margin: 0 auto;
+  }
+
+  .feature .release {
+    @include hidpi('builds/release', 'png');
+    width: 198px;
+    height: 263px;
+    margin: 0 auto;
+  }
+
+  .feature .lts {
+    @include hidpi('builds/lts', 'png');
+    width: 198px;
+    height: 263px;
+    margin: 0 auto;
+  }
+
   .features {
-    margin-top: 15%;
+    margin-top: 5%;
   }
 
   .feature {
@@ -30,7 +167,7 @@
     li {
       float: left;
       margin-right: 10px;
-      border-radius: 3px;
+      @include border-radius(3px);
       padding: 5px;
       width: 111px;
       text-align: center;
@@ -54,8 +191,16 @@
     }
   }
 
+  .project-name {
+    margin-top: 0;
+  }
+
+  .description {
+    border-top: 1px dotted #E5DBD6;
+    padding-top: 10px;
+  }
+
   .table {
-    margin-top: 2em;
     width: 100%;
     background-color: transparent;
     border-collapse: collapse;
@@ -80,6 +225,12 @@
     td {
       vertical-align: middle;
       border-top: 1px solid #dddddd;
+    }
+
+    td, th {
+      &:last-child {
+        text-align: right;
+      }
     }
   }
 
@@ -112,7 +263,7 @@
     font-weight:normal;
     color:rgba(0,0,0,0);
     background:transparent;
-    border-radius:.25rem;
+    @include border-radius(.25rem);
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     -webkit-touch-callout: none;
   }
@@ -132,7 +283,7 @@
     bottom:0;
     left:0;
     right:0;
-    border-radius:.25rem;
+    @include border-radius(.25rem);
     @include backface-visibility( hidden);
   }
 
@@ -158,4 +309,140 @@
   .loading-spinner {
     text-align: center;
   }
+
+  hr {
+    height: 1px;
+    border: none;
+    margin: 40px 0;
+    background-color: #dfd7d4;
+  }
+
+  .centered {
+    text-align: center;
+  }
+
+  .files-table {
+    margin-bottom: 4em;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  #download {
+    width: 100%;
+    #download-ember {
+      left: auto;
+      margin: 2.5em 0;
+    }
+  }
+
+  /*
+   * Warning at the top of the build page
+   */
+
+  .old-version-warning {
+    background-color: #dd6a58;
+    color: #FFFBF5;
+    padding: .5em;
+    border-radius: 3px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .old-version-warning .btn {
+    float: right;
+    font-weight: bold;
+    font-size: 12px;
+    color: #FFFBF5;
+    padding: 0.3em 0.8em;
+    background-color: #e69082;
+    border-radius: 3px;
+    line-height: 1.4;
+  }
+
+  .icon-attention-circled:before {
+    content: '!';
+    font-family: "Arial Black";
+    font-style: normal;
+    background-color: #FFFBF5;
+    color: #dd6a58;
+    speak: none;
+    display: inline-block;
+    text-decoration: inherit;
+    width: 1em;
+    margin-right: .2em;
+    text-align: center;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1em;
+    border-radius: 0.5em;
+  }
+
+  /*
+   * Channels list on the index page
+   */
+
+  .channels {
+    margin-top: 5%;
+  }
+
+  .channel {
+    text-align: left;
+    @include clearfix();
+  }
+
+  .channel .tomster {
+    float: left;
+    margin: 0 20px;
+    width: 10%;
+    padding: 10px 0;
+    &:hover {
+      border: 0;
+    }
+  }
+
+  .channel.lts {
+    opacity: 0.5; // Grey it out for now, since we haven't released one yet
+  }
+
+  .channel .description {
+    width: 80%;
+    padding: 20px 0;
+    &.last {
+      border-bottom: 1px dotted #E5DBD6;
+    }
+  }
+
+  .channel .canary {
+    background-image: url('/images/builds/canary.png');
+    background-size: cover;
+    width: 99px;
+    height: 131.5px;
+    margin: 0 auto;
+  }
+
+  .channel .beta {
+    background-image: url('/images/builds/beta.png');
+    background-size: cover;
+    width: 99px;
+    height: 131.5px;
+    margin: 0 auto;
+  }
+
+  .channel .release {
+    background-image: url('/images/builds/release.png');
+    background-size: cover;
+    width: 99px;
+    height: 131.5px;
+    margin: 0 auto;
+  }
+
+  .channel .lts {
+    background-image: url('/images/builds/lts.png');
+    background-size: cover;
+    width: 99px;
+    height: 131.5px;
+    margin: 0 auto;
+  }
+
 }

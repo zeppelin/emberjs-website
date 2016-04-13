@@ -87,9 +87,8 @@ module TOC
       return if name.blank?
 
       %Q{
-        <h1>#{name} 
-          <a href="#{chapter_github_source_url}" target="_blank" class="edit-page">
-            Edit Page</a>
+        <h1>#{name}
+          <a href="#{chapter_github_source_url}" target="_blank" class="edit-page icon-pencil">Edit Page</a>
         </h1>
       }
     end
@@ -104,10 +103,10 @@ module TOC
 
     def chapter_github_source_url
       base_guide_url = "https://github.com/emberjs/website/tree/master/source/guides"
-      if current_guide
-        return "#{base_guide_url}/#{current_guide['url']}.md"
+      if section_slug == guide_slug
+        return "#{base_guide_url}/#{current_guide['url']}/index.md"
       else
-        return "#{base_guide_url}/index.md"
+        return "#{base_guide_url}/#{current_guide['url'].gsub(/.html/, '')}.md"
       end
     end
 
@@ -122,6 +121,8 @@ module TOC
     end
 
     def current_guide
+      return unless current_section
+
       if guide_slug == '' && section_slug == 'index.html'
         current_section[1][0]
       else
@@ -167,11 +168,19 @@ module TOC
       }
       elsif whats_next = next_guide
         next_chapter = whats_next[1][0]
-        %Q{
-          <a class="next-guide" href="/guides/#{next_chapter.url}">
-             We're done with #{current_section[0]}. Next up: #{whats_next[0]} - #{next_chapter.title} \u2192
-          </a>
-        }
+        if section_slug == 'index.html'
+          %Q{
+            <a class="next-guide" href="/guides/#{next_chapter.url}">
+              #{next_chapter.title} \u2192
+            </a>
+          }
+        else
+          %Q{
+            <a class="next-guide" href="/guides/#{next_chapter.url}">
+               We're done with #{current_section[0]}. Next up: #{whats_next[0]} - #{next_chapter.title} \u2192
+            </a>
+          }
+        end
       else
         ''
       end
@@ -249,13 +258,20 @@ module TOC
 
 
     WARNINGS = {
-        "ember-data"=>  %Q{
+        "canary"=>  %Q{
           <div class="under_construction_warning">
             <h3>
               <div class="msg">
-                Warning: ember-data is a work in progress and under rapid development.
-                <br/>
-                <span class="more_caution">Use with caution!!!</span>
+                WARNING: this guide refers to a feature only available in canary (nightly/unstable) builds of Ember.js.
+              </div>
+            </h3>
+          </div>
+        },
+        "canary-data"=>  %Q{
+          <div class="under_construction_warning">
+            <h3>
+              <div class="msg">
+                WARNING: this guide refers to a feature only available in canary (nightly/unstable) builds of Ember Data.
               </div>
             </h3>
           </div>

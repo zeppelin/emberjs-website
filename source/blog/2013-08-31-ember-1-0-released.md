@@ -1,7 +1,7 @@
 ---
 title: Ember 1.0 Released
 author: The Core Team
-tags: Releases, Recent Posts
+tags: Releases
 ---
 
 Today, we're excited to announce the final release of Ember.js 1.0.
@@ -67,8 +67,8 @@ in his recently completed guides:
 * [Asynchronous Routing][1]
 * [Preventing and Retrying Transitions][2]
 
-[1]: http://emberjs.com/guides/routing/asynchronous-routing/
-[2]: http://emberjs.com/guides/routing/preventing-and-retrying-transitions/
+[1]: /guides/routing/asynchronous-routing/
+[2]: /guides/routing/preventing-and-retrying-transitions/
 
 ### Preparation for Modules
 
@@ -152,8 +152,8 @@ For Ember 1.0, Trek led a documentation audit of all of the API documentation in
 the entire codebase, which led to 1,700 new lines of documentation, and an
 across-the-board freshening for new idioms and best practices.
 
-[9]: http://emberjs.com/api
-[10]: http://emberjs.com/guides
+[9]: /api
+[10]: /guides
 
 ### Ember Data 1.0 Beta 1
 
@@ -316,7 +316,7 @@ leading up to Ember 1.0:
 * Domenic Denicola, for putting us on the right path with promises
 * Dan Gebhardt, for website infrastructure
 * David Hamilton, for the Array Computed feature
-* Robert Jackson, for the new builds.emberjs.com
+* Robert Jackson, for the new emberjs.com/builds
 * Julien Knebel, for design work
 * Alex Matchneer, for the async router guide
 * Luke Melia, for `actions` namespacing, last minute bugfix work, and the Ember NYC community

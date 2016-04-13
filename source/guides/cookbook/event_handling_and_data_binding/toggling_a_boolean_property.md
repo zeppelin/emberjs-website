@@ -1,7 +1,5 @@
-## Problem
-You want to toggle a boolean property.
-
-## Solution
-Use the `toggleProperty` method of an `Ember.Object`.
-
-## Discussion
+<!--
+  Guides have moved to http://guides.emberjs.com.
+  This file exists so a <meta> redirect is created
+  via layouts/guide.erb
+-->

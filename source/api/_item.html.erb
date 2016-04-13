@@ -17,8 +17,7 @@
 <% end %>
 
 <% if item['deprecated'] %>
-  <%# TODO: Handle deprecation message %>
-  <span class="flag deprecated">deprecated</span>
+  <span class="flag deprecated" <% if item['deprecationMessage'] %>title="<%= item['deprecationMessage'] %>"<% end %>>deprecated</span>
 <% end %>
 
 <% if item['access'] %>
@@ -60,12 +59,16 @@
       <% end %>
       <%= api_file_link item %>
 
-    <%# TODO: Handle deprecation message %>
-
     <% if item['since'] %>
       <br/>Available since <%= item['since'] %>
     <% end %>
   </div>
+
+  <% if item['deprecationMessage'] %>
+    <div class="deprecation">
+      <%= api_markdown item['deprecationMessage'] %>
+    </div>
+  <% end %>
 
   <% if item['description'] %>
     <div class="description">
@@ -97,8 +100,19 @@
 
       <dl>
         <% item['params'].each do |param| %>
-          <dt><strong><%= param['name'] %></strong> <span class="type"><%= api_class_link param['type'] %></span></dt>
-          <dd><%= param['description'] %></dd>
+          <dt><strong><%= param['name'] %></strong> <span class="type"><%= api_param_type param %></span></dt>
+          <dd>
+            <%= param['description'] %>
+
+            <% if param['props'] %>
+              <dl>
+                <% param['props'].each do |prop| %>
+                  <dt><strong><%= prop['name'] %></strong> <span class="type"><%= api_param_type prop %></span></dt>
+                  <dd><%= prop['description'] %></dd>
+                <% end %>
+              </dl>
+            <% end %>
+          </dd>
         <% end %>
       </dl>
     </div>

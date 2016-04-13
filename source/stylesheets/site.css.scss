@@ -1,22 +1,49 @@
+$screen-xs:                  480px !default;
+$screen-xs-min:              $screen-xs !default;
+$screen-phone:               $screen-xs-min !default;
+
+$screen-sm:                  768px !default;
+$screen-sm-min:              $screen-sm !default;
+$screen-tablet:              $screen-sm-min !default;
+
+$screen-md:                  992px !default;
+$screen-md-min:              $screen-md !default;
+$screen-desktop:             $screen-md-min !default;
+
+$screen-lg:                  1200px !default;
+$screen-lg-min:              $screen-lg !default;
+$screen-lg-desktop:          $screen-lg-min !default;
+$max-width:                  $screen-lg;
+
+$screen-xs-max:              ($screen-sm-min - 1) !default;
+$screen-sm-max:              ($screen-md-min - 1) !default;
+$screen-md-max:              ($screen-lg-min - 1) !default;
+
 @import 'compass';
 @import 'compass/reset';
 @import 'compass/typography/text/ellipsis';
+@import "bourbon";
+@import "neat";
+@import 'mixins/hidpi';
 @import 'fonts';
 @import 'colors';
+@import 'header';
+@import 'footer';
 @import 'examples';
 @import 'about';
 @import 'guides';
 @import 'blog';
 @import 'builds';
+@import 'dashboard';
 @import 'shared';
+@import 'survey';
 
 /* Calculated page dimensions. */
-$page-width: 940px;
+$page-width: 960px;
 $col-width: 40px;
 $col-spacing: 20px;
 $sidebar-width: $col-width * 4 + $col-spacing * 3;
 $content-width: $page-width - $sidebar-width - $col-spacing * 2;
-
 
 @mixin width-for-columns($cols) {
   width: $cols * $col-width + ($cols - 1) * $col-spacing;
@@ -28,7 +55,7 @@ $content-width: $page-width - $sidebar-width - $col-spacing * 2;
 
 body {
   background-color: #faf4f1;
-  margin: 60px 0 0 0;
+  margin: 0;
   padding: 0;
   font-family: 'Helvetica Neue', Helvetica, Arial, Sans-Serif;
   font-size: 14px;
@@ -67,8 +94,26 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+h1 {
+  font-size: 24px;
+  margin-top: 0;
+  color: $orange-color;
+  // border-bottom: solid 1px #d0d0d0;
+  // This styling has been removed from everywhere other than
+  // the API and Guides, like at line 1167.
+  padding-bottom: 20px;
+}
+
+/* This next h1 is so h1s in the middle of the page (ie not the first time)
+have additional breathing room up top */
+
+h1:not(:first-child) {
+  margin-top: 40px;
+}
+
 h2 {
   font-size: 22px;
+  margin: .83em 0;
 }
 
 h2, h3{
@@ -215,6 +260,10 @@ p {
           border-bottom: 1px solid #d5ccc8;
           padding: 12px 12px 10px 12px;
           background-color: rgb(244, 236, 233);
+
+          &:hover {
+            background-color: #ECE3E0;
+          }
         }
 
         & + .level-1 > a {
@@ -223,11 +272,7 @@ p {
 
         &.selected > a {
           background-color: #f16f58;
-          background-image:         linear-gradient(-90deg, #f67862, #e7624b);
-          background-image:      -o-linear-gradient(-90deg, #f67862, #e7624b);
-          background-image:    -moz-linear-gradient(-90deg, #f67862, #e7624b);
-          background-image:     -ms-linear-gradient(-90deg, #f67862, #e7624b);
-          background-image: -webkit-linear-gradient(-90deg, #f67862, #e7624b);
+          @include background-image(linear-gradient(-90deg, #f67862, #e7624b));
           margin-left: -1px;
           margin-right: -1px;
           color: white;
@@ -247,8 +292,6 @@ p {
           display: block;
           text-transform: none;
           color: #d84a32;
-          font-weight: normal;
-          font-size: 13px;
           &:hover {
             background-color: #f2d1cb;
             color: black;
@@ -331,7 +374,8 @@ p {
   min-width: $page-width;
   top: 0;
   height: 60px;
-  background: url('/images/navigation_background.png') top center;
+  background: $orange-color top center;
+  @include hidpi('navigation_background', png);
   border-bottom: 1px solid #aa412f;
   z-index: 10; /* The header is on top to have proper drop-shadow. */
   @include box-shadow(rgba(0, 0, 0, 0.3) 0 0 3px);
@@ -350,11 +394,12 @@ p {
     top: 6px;
     width: 103px;
     height: 40px;
-    background: url('/images/ember_logo.png');
-    @include filter(drop-shadow(rgba(0, 0, 0, 0.3) 0 1px 2px));
+    @include hidpi('ember_logo', 'png');
+    @include transform(scale(1));
+    @include transition(0.2s);
 
-    &:hover {
-      @include filter(drop-shadow(rgba(0, 0, 0, 0.7) 0 1px 3px));
+    &:hover, &:focus {
+      @include transform(scale(1.06));
       border: 0;
     }
   }
@@ -442,13 +487,13 @@ p {
       @include text-shadow(rgba(0, 0, 0, 0.3) 0px 1px 0px);
 
       display: block;
-      padding: 0px 1em;
+      padding: 0px 1em 0 0.5em;
       height: 28px;
       line-height: 28px;
 
       background-color: #ff6e56;
       @include filter-gradient(#ff6e56, #ed4f35, vertical);
-      @include background-image(linear-gradient(top, #ff6e56 0%, #ed4f35 100%));
+      @include background-image(linear-gradient(to bottom, #ff6e56 0%, #ed4f35 100%));
 
       border: 1px solid #a93926;
       @include border-radius(4px);
@@ -461,15 +506,22 @@ p {
         background: #f86c55;
       }
     }
+
+    .icon-fork {
+      font-size: 1.4em;
+      margin-left: 0;
+      vertical-align: middle;
+    }
   }
 }
 
 #content-wrapper {
-  @include clearfix;
-  width: 960px;
-  padding: 0px 0px 20px 0px;
-  margin: 0 auto;
-  position: relative;
+  // TBR
+  // @include clearfix;
+  // width: 960px;
+  // padding: 0px 0px 20px 0px;
+  // margin: 0 auto;
+  // position: relative;
 
   &.grid {
     background-image: url('/images/grid.png');
@@ -498,6 +550,7 @@ p {
     margin: 1.5em 0;
     text-align: center;
     border: 1px solid #cccccc;
+    overflow-x: auto;
   }
 
   aside {
@@ -517,10 +570,26 @@ p {
 .about-header-text {
   display: block;
   margin: 60px auto 0 auto;
+  width: image-width('about/header-text.png');
+  height: image-height('about/header-text.png');
+  overflow: hidden;
+  white-space: nowrap;
+  text-indent: 100%;
+  border-bottom: none;
+  @include hidpi('about/header-text', png);
+  background-repeat: no-repeat;
+  background-size: contain !important;
+  background-position: 50%;
+  max-width: 100%;
+  @include media (max-width $screen-sm) {
+    margin-right: 15px;
+    margin-left: 15px;
+    width: auto;
+  }
 }
 
 #download {
-  width: 465px;
+  width: 280px;
   margin: 0 auto;
   position: relative;
 
@@ -533,7 +602,7 @@ p {
     left: 0;
 
     .button {
-      margin: 0 auto;
+      margin: 3px auto 6px;
       font-size: 13px; /* Due to long version name */
     }
   }
@@ -570,6 +639,9 @@ p {
     img {
       vertical-align: middle;
     }
+    .gplus a img {
+      border: 0;
+    }
   }
 }
 
@@ -596,28 +668,26 @@ p {
   @include clearfix;
 
   .feature {
-    @include width-for-columns(4);
-    float: left;
-    margin-left: $col-width + $col-spacing;
-    margin-right: $col-spacing;
+    @include span-columns(4);
+    text-align: center;
 
     img {
       margin-left: auto;
       margin-right: auto;
-      display: block;
+      display: inline-block;
+      max-width: 100%;
     }
-
-    p {
-      text-align: center;
+    @include media(max-width $screen-sm) {
+      @include span-columns(12);
     }
   }
 }
 
 #content .users.section {
   .surround {
-    width: 940px;
+    @include span-columns(12);
     margin: 0 auto;
-    padding-top: 19px;
+    @include padding(flex-gutter() flex-gutter() 0 flex-gutter());
 
     @include border-radius(3px);
     @include box-shadow(inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 0 #fff);
@@ -642,7 +712,8 @@ p {
 
       .bx-prev,
       .bx-next {
-        background: url('/images/about/carousel_controls.png') no-repeat;
+        background: no-repeat;
+        @include hidpi('about/carousel_controls', png);
         float: left;
         height: 28px;
         width: 30px;
@@ -679,7 +750,8 @@ p {
 
       .bx-pager {
         @include clearfix;
-        background: url('/images/about/carousel_pager_bg.png') bottom repeat-x #f4f4f4;
+        background: bottom repeat-x #f4f4f4;
+        @include hidpi('about/carousel_pager_bg', png);
         border-left: 1px solid #fafafa;
         border-right: 1px solid #fafafa;
         border-top: 1px solid #fefefe;
@@ -691,7 +763,8 @@ p {
         text-align: center;
 
         .pager-link {
-          background: url('/images/about/carousel_dots.png') 0 0 no-repeat;
+          background: 0 0 no-repeat;
+          @include hidpi('about/carousel_dots', png);
           height: 11px;
           width: 10px;
           margin-left: 10px;
@@ -715,9 +788,23 @@ p {
   }
 
   .user {
-    position: relative;
-    float: left;
-    width: 230px;
+    @include margin(null null flex-gutter() null);
+    @include span-columns(4);
+
+    // three items per row > smartphone
+    @include media(min-width $screen-sm) {
+      &:nth-child(3n) {
+        @include omega;
+      }
+    }
+
+    // two items per row on smartphones
+    @include media(max-width $screen-xs-max) {
+      @include span-columns(6);
+      &:nth-child(2n) {
+        @include omega;
+      }
+    }
 
     &.empty {
       display: block;
@@ -726,13 +813,20 @@ p {
     }
 
     a {
+      // background: url('/images/about/user_bg.png') no-repeat;
+      display: block;
+      margin-left: 20px;
+      background-color: white;
+      text-align: center;
+      @include margin(null auto null auto);
       @include border-radius(4px);
       @include box-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-      background: url('/images/about/user_bg.png') no-repeat;
-      display: block;
-      height: 103px;
-      margin-left: 20px;
-      width: 210px;
+      border: 1px solid #ccc;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
     }
   }
 
@@ -741,10 +835,12 @@ p {
   }
 
   .listed {
-    float: left;
-    margin-left: $col-width * 9;
+    @include span-columns(12);
     margin-top: 20px;
     text-align: center;
+    .button {
+      display: inline-block;
+    }
   }
 }
 
@@ -752,14 +848,21 @@ p {
   .gear {
     text-align: center;
     height: 120px;
-
     .gearplus {
-      padding: 0px 30px 0px 30px;
-      display: inline;
-      line-height: 120px;
+      display: none;
+    }
+    > a {
+      @include media(min-width $screen-sm) {
+        @include span-columns(3);
+      }
+      @include media(max-width $screen-xs-max) {
+        margin-bottom: flex-gutter();
+        @include span-columns(6);
+        @include omega(2n);
+      }
       img {
-        vertical-align: top;
-        padding-top: 50px;
+        max-width: 100%;
+        height: auto;
       }
     }
   }
@@ -827,11 +930,35 @@ p {
   margin-top: 10px;
 }
 
+.anchorable-toc {
+  position: relative;
+
+  &:hover a.toc-anchor {
+    display: block;
+  }
+}
+
+a.toc-anchor {
+  display: none;
+  position: absolute;
+  text-decoration: none;
+  border: none;
+  left: -1em;
+  width: 30px;
+  height: 13px;
+  background: url('/images/link.png') no-repeat;
+  background-size: 18px 9px;
+  left: -22px;
+  opacity: 0.5;
+  top: 50%;
+  margin-top: -5px;
+}
+
 /**
   Guides Page
 **/
 
-.guides {
+.guides, .dashboard {
   .chapter {
     $h3-indent: 32px;
     $body-indent: $h3-indent;
@@ -853,30 +980,6 @@ p {
         }
       }
     }
-  }
-
-  .anchorable-toc {
-    position: relative;
-
-    &:hover a.toc-anchor {
-      display: block;
-    }
-  }
-
-  a.toc-anchor {
-    display: none;
-    position: absolute;
-    text-decoration: none;
-    border: none;
-    left: -1em;
-    width: 30px;
-    height: 13px;
-    background: url('/images/link.png') no-repeat;
-    background-size: 18px 9px;
-    left: -22px;
-    opacity: 0.5;
-    top: 50%;
-    margin-top: -5px;
   }
 
   table {
@@ -991,6 +1094,14 @@ p {
       max-width: 100%;
     }
 
+    img.no-background {
+      background-color: transparent;
+    }
+
+    img.float-right {
+      float: right;
+    }
+
     ul, ol {
       margin-left: 1.5em;
     }
@@ -1040,23 +1151,72 @@ body.community #content {
   margin: 3em auto 0 auto;
   width: 54em;
 
-  h1, h1:first-child {
-    margin-top: 0;
-    color: $orange-color;
-    border-bottom: solid 1px #d0d0d0;
-    padding-bottom: 20px;
+  > h1 {
+    text-align: center;
+    margin: 3em auto 1em auto;
   }
 
   .section {
     width: auto;
-    img {
+    .image {
       float: left;
       margin: 0 20px 15px 0;
+      width: 220px;
+      height: 142px;
+    }
+    &.contribute .image {
+      @include hidpi('community/give', 'png');
     }
 
-    &.bugs img {
+    &.help .image {
+      @include hidpi('community/sos', 'png');
+    }
+
+    &.bugs .image {
+      @include hidpi('community/bug', 'png');
       float: right;
       margin: 0 0 15px 20px;
+    }
+    &.meetup {
+      width: 47%;
+      float: left;
+      text-align: center;
+      h2 {
+        margin-bottom: 10px;
+        line-height: 1.2;
+      }
+      .image {
+        @include hidpi('community/meetup', 'png');
+        background-position: center top;
+        float: none;
+        margin: 0 0 15px 20px;
+        width: 221px;
+        height: 185px;
+        margin: 0 auto;
+      }
+      .button {
+        margin: 25px auto;
+      }
+    }
+    &.learn {
+      width: 47%;
+      float: right;
+      text-align: center;
+      h2 {
+        margin-bottom: 15px;
+        line-height: 1.2;
+      }
+      .image {
+        @include hidpi('community/campster', 'png');
+        background-position: center top;
+        float: none;
+        width: 201px;
+        height: 179px;
+        margin: 0 auto;
+      }
+      .button {
+        margin: 25px auto;
+      }
     }
     table {
       margin: 2em auto;
@@ -1068,19 +1228,323 @@ body.community #content {
 }
 
 /**
+  Meetups Page
+**/
+
+body.community_meetups #content {
+  margin: 3em auto 0 auto;
+  width: 54em;
+
+  h1, h1:first-child {
+    margin-top: 0;
+    padding-bottom: 20px;
+  }
+
+  .section {
+    width: auto;
+    @include clearfix;
+    table {
+      margin: 2em auto;
+    }
+    .inline_list a:first-child {
+      margin-left: 20px;
+    }
+  }
+
+  .map {
+    #map {
+      width: 100%;
+      height: 400px;
+      margin-top: 2em;
+      border: 1px solid #e0e0e0;
+      @include box-shadow(0 1px white, inset -1px 1px 4px rgba(0, 0, 0, 0.1));
+      @include border-radius(5px);
+      #maptype,
+      .gm-style-cc {
+        display: none;
+      }
+      .map-marker {
+        width: 200px;
+        padding: 10px;
+        font-family: 'Helvetica Neue', Helvetica, Arial, Sans-Serif;
+      }
+      h2, h3 {
+        font-size: 16px;
+        margin: 0 0 5px;
+        padding: 0;
+        line-height: 1em;
+      }
+      h2 {
+        color: #f23818;
+        margin-bottom: 20px;
+      }
+      h3 {
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 13px;
+        margin-bottom: 15px;
+        font-weight: normal;
+        text-align: left;
+        font-family: 'Helvetica Neue', Helvetica, Arial, Sans-Serif;
+      }
+      .organizer {
+        @include clearfix;
+        margin: 15px 0;
+        height: 40px;
+      }
+      .profile-img-wrapper {
+        width: 40px;
+        height: 40px;
+        float: left;
+        margin-right: 10px;
+        overflow: hidden;
+        background-color: #ddd;
+      }
+      .profile-img {
+        max-width: 40px;
+        margin: 0 auto;
+      }
+      .view {
+        text-align: center;
+        font-weight: bold;
+        margin: 20px 0 5px;
+        padding: 12px 0 0;
+        border-top: dotted 1px #d0d0d0;
+      }
+    }
+  }
+
+  .list {
+    table {
+      margin-top: 0.5em;
+    }
+    h3 {
+      margin-top: 1.5em;
+    }
+    h4 {
+      color: #252525;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-top: 1em;
+      margin-bottom: 0;
+      font-size: 14px;
+      font-family: 'Helvetica Neue', Helvetica, Arial, Sans-Serif;
+    }
+    .col-third {
+      width: 33%;
+      float: left;
+      box-sizing: border-box;
+      padding: 0 10px;
+      &:first-of-type {
+        padding: 0 20px 0 0;
+      }
+      &:last-of-type {
+        padding: 0 0 0 20px;
+      }
+    }
+
+    ul {
+      text-align: left;
+      padding: 0;
+      margin: 0.5em 0;
+      list-style-type: none;
+      li {
+        margin: 2px 0;
+        padding: 0;
+        &:before {
+          // Currently the standard res is good enough for retina, since we're already downscaling
+          // and the automatically added background-size declaration is problematic
+          //@include hidpi('meetups/map-pin', 'png');
+          background-image: url('/images/meetups/map-pin.png');
+          background-size: 9px auto;
+          width: 9px;
+          height: 12px;
+          display: inline-block;
+          content: "";
+          vertical-align: middle;
+          margin-right: 7px;
+          margin-bottom: 2px;
+        }
+      }
+      a {
+        border: none;
+        display: inline-block;
+        &.active {
+          font-weight: bold;
+        }
+      }
+    }
+  }
+
+  .start {
+    .image {
+      @include hidpi('community/meetup', 'png');
+      background-position: center top;
+      float: left;
+      width: 221px;
+      height: 185px;
+      margin: -35px 20px 0 auto;
+    }
+    p {
+      text-align: left;
+    }
+  }
+}
+
+/**
+  Resources Page
+**/
+
+body.community_resources #content {
+  margin: 3em auto 0 auto;
+  width: 54em;
+
+  h1, h1:first-child {
+    margin-top: 0;
+    padding-bottom: 20px;
+  }
+
+  .section {
+    width: auto;
+    @include clearfix;
+    table {
+      margin: 2em auto;
+    }
+    .inline_list a:first-child {
+      margin-left: 20px;
+    }
+  }
+
+  .surround {
+    width: 756px;
+    margin: 0 auto;
+    @include padding(19px $gutter null $gutter);
+    @include media(max-width $screen-xs-max) {
+      @include padding(19px $gutter/4 null $gutter/4);
+    }
+    a:hover {
+      border: 0;
+    }
+
+    ul {
+      margin: 0;
+    }
+
+    .bx-wrapper,
+    .bx-window {
+      width: 756px;
+      margin: 0 auto;
+    }
+
+    .bx-wrapper {
+
+      .bx-prev,
+      .bx-next {
+        background: no-repeat;
+        @include hidpi('about/carousel_controls', png);
+        float: left;
+        height: 220px;
+        width: 30px;
+      }
+
+      .bx-prev,
+      .bx-next,
+      .pager-link {
+        text-indent: -9999px;
+      }
+
+      .bx-prev {
+        background-position: left;
+        float: right;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .bx-next {
+        background-position: right;
+        float: right;
+        position: absolute;
+        top: 0;
+        right: 1px;
+      }
+
+      .bx-window {
+        height: 225px;
+      }
+
+      .bx-pager {
+        @include clearfix;
+        font-size: 0;
+        height: 28px;
+        line-height: 0;
+        margin: 0 29px;
+        padding-top: 9px;
+        text-align: center;
+
+        .pager-link {
+          background: 0 0 no-repeat;
+          @include hidpi('about/carousel_dots', png);
+          height: 11px;
+          width: 10px;
+          margin-left: 10px;
+          display: inline-block;
+
+          &.pager-active,
+          &.pager-active:hover {
+            background-position: -22px 0;
+          }
+
+          &:hover {
+            background-position: -11px 0;
+          }
+
+          &:first-of-type {
+            margin-left: 0;
+          }
+        }
+      }
+    }
+  }
+  .user {
+    position: relative;
+    float: left;
+    width: 235px;
+    text-align: center;
+
+    &.empty {
+      display: block;
+      height: 220px;
+      visibility: hidden; /*Take up space, but be invisible*/
+    }
+
+    a {
+      display: block;
+      height: 220px;
+      margin: 0 10px;
+      width: 210px;
+    }
+  }
+
+  p {
+    text-align: center;
+  }
+
+  .listed {
+    float: left;
+    margin-left: $col-width * 9;
+    margin-top: 20px;
+    text-align: center;
+  }
+}
+
+/**
   Security Page
 **/
 
 body.security #content {
   margin: 3em auto 0 auto;
   width: 54em;
-
-  h1, h1:first-child {
-    margin-top: 0;
-    color: $orange-color;
-    border-bottom: solid 1px #d0d0d0;
-    padding-bottom: 20px;
-  }
 }
 
 /**
@@ -1091,10 +1555,6 @@ body.security #content {
 
   .section {
     width: 100%;
-  }
-
-  h1 {
-    margin-bottom: 10px;
   }
 
   #content {
@@ -1114,17 +1574,17 @@ body.security #content {
   margin-top: 0px;
 }
 
-#showcase {
+.showcase {
   margin: 0 auto;
   width: 100%;
 }
 
-#content #showcase tr {
+#content .showcase tr {
   background: transparent;
   border-bottom: none;
 }
 
-#showcase td {
+.showcase td {
 
   &:nth-child(2) a {
     margin: 0 auto;
@@ -1143,10 +1603,277 @@ body.security #content {
   }
 }
 
-#showcase a:hover {
+.showcase a:hover {
   border-bottom: none;
 }
 
+/**
+  Deprecations Page
+**/
+
+body.deprecations {
+  #content {
+    margin-top: 38px;
+  }
+}
+
+/**
+  Tomster Page
+**/
+
+.tomster.section.intro {
+  margin: 3em auto 0;
+  width: 54em;
+  h1 {
+    text-align: center;
+  }
+}
+
+.tomster.section.list {
+  margin: 0 auto;
+
+  #tomster-list td {
+    padding: 20px;
+  }
+
+  .tomster-container {
+    border-radius: 2px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    -moz-box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    -webkit-box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+
+  .tomster-image {
+    text-align: center;
+    width: 438px;
+    height: 438px;
+    padding: 30px;
+    // These next three lines control centering the Tomsters
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    img {
+      margin-bottom: -4px; // Fixes 4px space below image
+      max-width: 100%;
+      max-height: 100%;
+    }
+  }
+
+  .tomster-info {
+    @include clearfix;
+    padding: 12px;
+    height: 41px;
+    .title {
+      float: left;
+      font-size: 15px;
+      font-weight: bold;
+      font-family: 'Maven Pro';
+      text-transform: uppercase;
+    }
+    .date {
+      float: right;
+    }
+    p.not-yet-url {
+      // If the Tomster entry has no URL, this controls the formatting
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+}
+
+/**
+  Tomster FAQ Page
+**/
+
+body.tomster_faq #content {
+  margin: 3em auto 0 auto;
+  width: 54em;
+
+  h1, h1:first-child {
+    margin-top: 0;
+    padding-bottom: 20px;
+  }
+
+  .section {
+    width: auto;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  hr {
+    height: 1px;
+    border: none;
+    margin: 2em 0;
+    background-color: #dfd7d4;
+  }
+
+  #back-to-top {
+    padding-left: 13px;
+    text-align: center;
+    display: none;
+    @include transition(opacity 0.05s linear);
+
+    @media screen and (max-width: 1200px) {
+      padding-left: 0px;
+      height: 20px;
+      width: 30px;
+      overflow: hidden;
+    }
+
+    @media screen and (max-width: 1020px) {
+      display: none !important;
+    }
+  }
+}
+
+.tomster-faq {
+  @include clearfix;
+  .left-col {
+    float: left;
+    width: 491px;
+  }
+  .right-col {
+    float: left;
+    width: 225px;
+    margin-left: 40px;
+    text-align: center;
+  }
+}
+
+/**
+  Tomster Commission Page
+**/
+
+body.tomster_commission #content,
+body.tomster_commission-sent #content,
+body.tomster_payment #content,
+body.tomster_payment-sent #content {
+  margin: 3em auto 0 auto;
+  width: 54em;
+
+  h1, h1:first-child {
+    margin-top: 0;
+    padding-bottom: 20px;
+  }
+
+  .section {
+    width: auto;
+  }
+}
+
+.tomster-commission,
+.tomster-payment {
+  @include clearfix;
+  .left-col {
+    float: left;
+    width: 491px;
+  }
+  .right-col {
+    float: left;
+    width: 225px;
+    margin-left: 40px;
+    text-align: center;
+  }
+}
+
+.tomster-form {
+  margin-top: 1.5em;
+  ul {
+    padding: 0;
+    margin: 0 !important;
+  }
+  li {
+    @include clearfix;
+  }
+  label,
+  legend {
+    margin-top: 1em;
+    margin-bottom: 0.4em;
+    display: block;
+    font-weight: bold;
+    &.error {
+      color: $orange-color;
+      font-size: 12px;
+      margin-top: -0.9em;
+    }
+    .req {
+      color: $orange-color;
+    }
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="file"],
+  textarea {
+    border: none;
+    margin: 0 0 1em;
+    display: block;
+    padding: 10px;
+    font-size: 14px;
+    background-color: white;
+    border: 1px solid #ddd;
+    outline: none;
+    width: 70%;
+    @include border-radius(6px);
+    @include box-shadow(0 1px #ffffff, inset -1px 1px 4px rgba(0, 0, 0, 0.1));
+    &:focus {
+      border-color: #888;
+    }
+    &.error {
+      border-color: $orange-color;
+    }
+  }
+  input[type="file"] {
+    padding: 15px 10px;
+    background-color: transparent;
+    cursor: pointer;
+    &:focus {
+      border-color: #ddd;
+    }
+  }
+  textarea {
+    width: 100%;
+    height: 100px;
+  }
+  fieldset {
+    .choice {
+      display: block;
+      margin-top: 0.3em;
+    }
+    label {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      font-weight: normal;
+    }
+    input.other {
+      margin-left: 20px;
+      margin-top: 0.1em;
+    }
+  }
+  input[type="submit"] {
+    margin-top: 1em;
+    width: 125px;
+    line-height: 35px;
+    &:hover {
+      cursor: pointer;
+    }
+  }
+  .inline-field {
+    margin-right: 5px;
+    float: left;
+    line-height: 40px;
+    input[type="text"] {
+      width: auto;
+    }
+    label {
+      line-height: 1.6em;
+    }
+  }
+}
 
 /**
   Sponsors Page
@@ -1156,11 +1883,15 @@ body.security #content {
   .section {
     width: 100%;
     margin-top: 0px;
-    padding: 2em;
-  }
+    padding: 0 2em 2em 2em;
 
-  h1 {
-    margin-bottom: 10px;
+    h2 {
+      margin: 30px 0;
+    }
+
+    h2:nth-of-type(2) {
+      margin-top: 50px;
+    }
   }
 
   p {
@@ -1176,6 +1907,22 @@ body.security #content {
     display: block;
     text-align: center;
     margin: 0 auto;
+  }
+
+  h5 {
+    text-align: center;
+    padding-top: 5px;
+  }
+
+  #sponsorType {
+    text-align: center;
+    font-style: italic;
+    font-size: 12px;
+    margin-top: 0px;
+  }
+
+  .thanks {
+    margin-top: 50px;
   }
 
   ul, ol {
@@ -1194,41 +1941,107 @@ body.security #content {
 }
 
 /**
-  Core Team Page
+  Core Team Page + Guidelines Page + Meetup Assets Page + Legal
 **/
 
-.team, .meetup-assets {
+.team, .meetup-assets, .guidelines, .legal, .logos {
 
   .section {
     width: 100%;
     margin-top: 0px;
+  }
 
-    .headshots {
-      width: 756px;
-
-      a:hover {
-        border-bottom: none;
-      }
-
-      td {
-        text-align: center;
-
-        p {
-          margin: 0px 0px 10px 0px;
-          font-weight: bold;
-        }
-
-        img {
-          border: 1px solid #888888;
-          margin-bottom: 10px
-        }
-      }
-    }
+  .rightFloat {
+    float: right;
+    padding: 2px;
   }
 
   #content {
     margin: 3em auto 0 auto;
     width: 54em;
+  }
+}
+
+/**
+  Core Team Page
+**/
+
+body.team {
+  h1, .lead {
+    text-align: center;
+  }
+  hr {
+    height: 1px;
+    border: none;
+    margin: 4em 0;
+    background-color: #dfd7d4;
+  }
+  .headshots {
+    width: 760px;
+    margin: 0 auto;
+
+    a:hover {
+      border-bottom: none;
+    }
+
+    td {
+      text-align: center;
+      padding: 40px 0 0;
+
+      p {
+        margin: 0px 0px 10px 0px;
+        font-weight: bold;
+      }
+
+      img {
+        margin-bottom: 10px;
+        border-radius: 50%;
+        width: 130px;
+        height: 130px;
+        border: 2px solid #faf4f1;
+        &:hover,
+        &:active,
+        &:focus {
+          border: 0;
+        }
+      }
+      .social {
+        margin-bottom: 0;
+        li {
+          display: inline-block;
+          padding: 0;
+        }
+        a {
+          color: #7c7a79;
+          font-size: 24px;
+          &:hover {
+            color: #444;
+          }
+        }
+      }
+    }
+    &.contributors {
+      .avatar {
+        position: relative;
+      }
+      img {
+        width: 66px;
+        height: 66px;
+      }
+      .type {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: -9px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+        display: block;
+        line-height: 1.5em;
+        border-radius: 4px;
+        background-color: #f23818;
+      }
+    }
   }
 }
 
@@ -1263,12 +2076,21 @@ body.security #content {
   margin-top: 50px;
 }
 
+.tomsterVar {
+  text-align: center;
+    a:hover {
+      text-decoration: none;
+      border-bottom: 0px;
+    }
+}
+
 
 /**
   Footer
 **/
 
 #footer {
+  min-width: $page-width;
   margin-top: 60px;
   padding: 25px 0;
   border-top: 1px solid #e5dbd6;
@@ -1278,7 +2100,7 @@ body.security #content {
   font-weight: bold;
 
   #footer-wrapper {
-    width: 940px;
+    width: $page-width;
     margin: 0 auto;
     position: relative;
     @include clearfix;
@@ -1314,27 +2136,45 @@ body.security #content {
     float: right;
 
     a {
-      margin: 0 10px;
+      margin: 3px 10px 0;
       border-bottom: none;
       opacity: 0.7;
+      @include transition(0.4s);
+
       &:hover {
         opacity: 1;
+      }
+
+      i {
+        margin: 0;
+      }
+
+      /*
+        This is for hiding text from users with normal vision
+        but keeping the text for screen readers
+      */
+      span {
+        display: inline-block;
+        width: 1px;
+        text-indent: 200%;
+        white-space: nowrap;
+        overflow: hidden;
       }
     }
   }
 
   .twitter, .github, .googleplus {
-    background: no-repeat url('/images/footer-links.png');
+    font-size: 33px;
+    line-height: 35px;
+    color: #464646;
     height: 35px;
     width: 35px;
     display: inline-block;
-    text-indent: 9999px;
-    overflow: hidden;
   }
 
-  .twitter { background-position: 0 2px }
-  .github { background-position: -59px 2px }
-  .googleplus { background-position: -119px 2px }
+  .googleplus {
+    font-size: 29px;
+  }
 
 }
 
@@ -1348,29 +2188,44 @@ body.security #content {
 
 .button {
   display: block;
-  width: 226px;
-  height: 46px;
+  width: 220px;
+  height: 40px;
   font-family: 'Maven Pro';
   font-weight: bold;
   text-transform: uppercase;
   text-decoration: none;
-  line-height: 47px;
+  line-height: 40px;
   font-size: 14px;
   color: #f6ece8;
   text-align: center;
   @include text-shadow(rgba(0, 0, 0, 0.3) 0 1px 0);
 
   &.orange {
-    background-image: url('/images/orange_buttons.png');
+    border: 1px solid #cb6352;
+    border-top-color: #ea7a68;
+    border-bottom-color: #a04332;
 
-    &:hover {
-      background-position: 0 -46px;
-      border-bottom: none;
+    @include filter-gradient(#fe845a, #d14e37, vertical);
+    @include background-image( linear-gradient(to bottom, #fe845a, #d14e37) );
+    @include border-radius(5px);
+    @include box-shadow(inset 0 1px 0 rgba(255, 255, 255, 0.35));
+
+    &:hover, &:focus {
+      border-color: #e27260;
+      border-top-color: #ea7a68;
+      border-bottom-color: #c1513d;
+      @include filter-gradient(#fc906b, #e2654e, vertical);
+      @include background-image( linear-gradient(to bottom, #fc906b, #e2654e) );
     }
 
     &:active {
-      background-position: 0 -92px;
-      @include text-shadow(rgba(0, 0, 0, 0.3) 0 -1px 0);
+      border-color: #c9533d;
+      border-top-color: #92473a;
+      border-bottom-color: #e1583f;
+      @include filter-gradient(#b2412e, #ed7249, vertical);
+      @include background-image( linear-gradient(to bottom, #b2412e, #ed7249) );
+      @include box-shadow(none);
+      @include text-shadow(rgba(0, 0, 0, 0.2) 0 -1px 0);
     }
   }
 
@@ -1386,13 +2241,6 @@ body.security #content {
       background-position: 0 -92px;
       @include text-shadow(rgba(0, 0, 0, 0.3) 0 -1px 0);
     }
-  }
-
-  &:hover {
-    background-position: 0 -46px;
-  }
-
-  &:active {
   }
 }
 
@@ -1416,17 +2264,24 @@ body.security #content {
   }
 }
 
+.button-hero {
+  margin: 30px auto;
+}
+
 a.edit-page {
-  background: no-repeat url('/images/pencil-icon.png');
-  width: 16px;
-  height: 16px;
+  font-size: 18px;
+  color: #444;
+  margin: 0;
+  width: 24px;
+  height: 18px;
   display: inline-block;
-  text-indent: 9999px;
   float: right;
   overflow: hidden;
   opacity: 0.4;
+
   &:hover {
     opacity: 1;
+    border-bottom: 0;
   }
 }
 
@@ -1518,20 +2373,50 @@ a.edit-page {
 
   .description {
     p {
-      font-family: 'Helvetica Neue';
-      font-weight: 200;
+      font-family: 'Helvetica Neue', Helvetica, Arial, Sans-Serif;
+      font-weight: 400;
       margin: 1.5em 0;
+      line-height: 1.5em;
+      color: #0C0C0C;
+    }
+  }
+
+  .deprecation {
+    background-color: #FFFFCC;
+    border: 1px solid #dfd7d4;
+    border-radius: 8px;
+    -moz-border-radius: 8px;
+    -webkit-border-radius: 8px;
+    margin: 1.5em 0;
+    padding: 10px;
+    p {
+      color: $orange-color;
+      font-family: 'Helvetica Neue';
+      font-size: 14px;
+      font-weight: bold;
+      margin: 0;
     }
   }
 
   ul.index-list {
     margin-left: 1.5em;
     overflow: hidden; /* Clearfix */
+    -moz-column-count: 2;
+    -moz-column-gap: 1em;
+    -webkit-column-count: 2;
+    -webkit-column-gap: 1em;
+    column-count: 2;
+    column-gap: 1em;
 
     li {
-      float: left;
-      width: 300px;
-      padding-right: 1em;
+      display: block;
+      overflow: hidden;
+      @include ellipsis;
+    }
+  }
+
+  ol#toc-list {
+    li a {
       display: block;
       overflow: hidden;
       @include ellipsis;
@@ -1557,11 +2442,22 @@ a.edit-page {
   span.flag {
     background-color: gray;
     color: white;
-    border-radius: 3px;
+    padding: 2px 7px;
+    @include border-radius(3px);
   }
 
   #sidebar ol#toc-list li > ol {
     display: block;
+  }
+
+  table {
+    thead {
+      background-color: #f9e7e4;
+    }
+
+    th, td {
+      padding: 5px 10px;
+    }
   }
 }
 
@@ -1569,7 +2465,7 @@ a.edit-page {
   404 Page
 **/
 
-body.not-found #content {
+.whoops {
   margin: 3em auto 0 auto;
   width: 54em;
 }
@@ -1577,30 +2473,51 @@ body.not-found #content {
 .under_construction_warning {
   background-color: #FFFFCC;
   width: 100%;
-  border-radius: 8px;
-  -moz-border-radius: 8px;
-  -webkit-border-radius: 8px;
+  @include border-radius(8px);
 }
 
 .under_construction_warning h3 {
-  height: 64px;
+  min-height: 64px;
   font-size: 14px !important;
   border: 1px solid #dfd7d4;
-  border-radius: 8px;
-  -moz-border-radius: 8px;
-  -webkit-border-radius: 8px;
+  @include border-radius(8px);
   color: #e1563f;
   padding: 0px 0px 1em 2em;
   margin-bottom: 1.5em;
-  background: no-repeat url("/images/ember-construction-57.png") top left; }
+  background: no-repeat url("/images/ember-construction-57.png") 0.5em 0.5em; }
 
 .under_construction_warning h3 .msg {
+  text-transform: none;
   margin-top: 12px;
   margin-left: 40px;
 }
 
 .more_caution {
   color: black;
+}
+
+/* Brand Page */
+
+.brand-logo, .brand-small {
+  text-align: center;
+}
+
+.brand-logo > img {
+  width: 300px;
+  background-image: url('/images/brand/brand-bg.png');
+  border: 1px solid #cccccc;
+  margin-top: 10px;
+}
+
+.brand-logo ~ a {
+  text-align: center;
+}
+
+.brand-small > img {
+  width: 150px;
+  background-image: url('/images/brand/brand-bg.png');
+  border: 1px solid #cccccc;
+  margin-top: 10px;
 }
 
 
@@ -1618,7 +2535,7 @@ body.not-found #content {
     background-color: $orange-color;
     border-top: 1px solid darken($orange-color, 20%);
     border-bottom: 1px solid darken($orange-color, 20%);
-    -webkit-box-shadow: 0 1px 0 #C0242D inset;
+    @include box-shadow(0 1px 0 #C0242D inset);
 
     .sections {
       color: white;
@@ -1643,3 +2560,5 @@ body.not-found #content {
     color: lighten($orange-color, 20%);
   }
 }
+
+@import 'highlight';

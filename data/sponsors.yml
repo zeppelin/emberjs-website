@@ -2,7 +2,7 @@
 # To have your pull request accepted, you must email listing@emberjs.com
 # with the subject line "Ember Sponsor Logo Contact". Please include the
 # name and email of a contact we can reach out to should we ever need
-# to make changes to this page or get logo variants, as well as an 
+# to make changes to this page or get logo variants, as well as an
 # explanation of why you should be listed here.
 
 # Please also be sure the logo you upload has a transparent background,
@@ -10,22 +10,50 @@
 
 - url: http://tilde.io/
   image: tilde.png
-- url: http://livingsocial.com/
-  image: livingsocial.png
-- url: http://www.mhelabs.com/
-  image: mhelabs.png
-- url: http://squareup.com/
-  image: square.png
+  type: "Yehuda Katz, Leah Silber, Godfrey Chan"
+  term_start: 2011-01-01
+- url: http://www.yahoo.com
+  image: yahoo.png
+  type: "Stefan Penner"
+  term_start: 2015-01-01
+- url: http://www.linkedin.com
+  image: linkedin.png
+  type: "Kris Selden, Glimmer, Ember 2.0"
+  term_start: 2015-01-01
 - url: https://www.yapp.us/
   image: yapp.png
+  type: "Kris Selden"
+  term_start: 2013-01-01
+  term_end: 2015-10-31
+- url: http://dockyard.com
+  image: dockyard.png
+  type: "Ember Data, Robert Jackson"
+  term_start: 2014-01-01
+  term_end: 2015-10-31
+- url: http://www.bustle.com/
+  image: bustle.png
+  type: "FastBoot, Glimmer"
+  term_start: 2014-01-01
+  term_end: 2015-10-31
 - url: https://addepar.com/
   image: addepar.png
+  type: "Ember Data"
+  term_start: 2012-01-01
+  term_end: 2013-12-31
+- url: http://www.mhelabs.com/
+  image: mhelabs.png
+  type: "Ember Data, Router"
+  term_start: 2013-01-01
+  term_end: 2013-12-31
+- url: http://livingsocial.com/
+  image: livingsocial.png
+  type: "Ember 1.0, Ember Data"
+  term_start: 2011-01-01
+  term_end: 2011-12-31
 
 # ---- PLEASE READ ----
 # To have your pull request accepted, you must email listing@emberjs.com
 # with the subject line "Ember Sponsor Logo Contact". Please include the
 # name and email of a contact we can reach out to should we ever need
-# to make changes to this page or get logo variants, as well as an 
+# to make changes to this page or get logo variants, as well as an
 # explanation of why you should be listed here.
-
-# Please also be sure the lo

@@ -10,11 +10,35 @@
 
 require "bundler/setup"
 require 'yaml'
+require './lib/meetups_data'
+
+begin
+  require 'openssl'
+  require 'open-uri'
+  open('https://raw.githubusercontent.com/emberjs/guides.emberjs.com/master/snapshots/versions.json')
+rescue OpenSSL::SSL::SSLError
+  puts <<-NOTICE.gsub(/^    /, '')
+    IMPORTANT NOTICE
+    ================
+
+    It looks like you haven't set up your certs correctly.
+    You probably want to run \033[1;33mrvm osx-ssl-certs update all\033[0m
+    If you're not on OSX, or want more information, please check out
+    \033[1;34mhttps://rvm.io/support/fixing-broken-ssl-certificates\033[0m
+
+  NOTICE
+  exit!
+rescue Exception
+  puts "Attempting to download guides.emberjs.com/version.json failed."
+  puts "This will prevent the build from working correctly."
+  puts
+  raise
+end
 
 def git_initialize(repository)
   unless File.exist?(".git")
     system "git init"
-    system "git remote add origin https://github.com/emberjs/#{repository}.git"
+    system "git remote add origin git@github.com:emberjs/#{repository}.git"
   end
 end
 
@@ -30,31 +54,101 @@ def ember_path
   File.expand_path(ENV['EMBER_PATH'] || File.expand_path("../../ember.js", __FILE__))
 end
 
-def generate_docs
-  print "Generating docs data from #{ember_path}... "
+def ember_data_path
+  File.expand_path(ENV['EMBER_DATA_PATH'] || File.expand_path("../../ember-data", __FILE__))
+end
 
-  sha = nil
 
-  Dir.chdir(ember_path) do
+def generate_ember_docs
+  output_path = 'api.yml'
+  repo_path = ember_path
+  sha = ENV['EMBER_SHA']
+
+  print "Generating docs data from #{repo_path}... "
+
+  Dir.chdir(repo_path) do
     # returns either `tag` or `tag-numcommits-gSHA`
-    describe = `git describe --tags --always`.strip
-    sha = describe =~ /-g(.+)/ ? $1 : describe
-
-    Dir.chdir("docs") do
-      system("npm install") unless File.exist?('node_modules')
-      # Unfortunately -q doesn't always work so we get output
-      system("./node_modules/.bin/yuidoc -p -q")
+    unless sha
+      describe = `git describe --tags --always`.strip
+      sha = describe =~ /-g(.+)/ ? $1 : describe
     end
+
+    sh('npm install && npm run docs')
   end
 
   # JSON is valid YAML
-  data = YAML.load_file(File.join(ember_path, "docs/build/data.json"))
+  data = YAML.load_file(File.join(repo_path, "docs/data.json"))
   data["project"]["sha"] = sha
-  File.open(File.expand_path("../data/api.yml", __FILE__), "w") do |f|
+  File.open(File.expand_path("../data/#{output_path}", __FILE__), "w") do |f|
     YAML.dump(data, f)
   end
 
-  puts "Built #{sha}"
+  puts "Built #{repo_path} with SHA #{sha}"
+end
+
+def generate_ember_data_docs
+  output_path = 'data_api.yml'
+  repo_path = ember_data_path
+  sha = ENV['EMBER_DATA_SHA']
+
+  print "Generating docs data from #{repo_path}... "
+
+  Dir.chdir(repo_path) do
+    # returns either `tag` or `tag-numcommits-gSHA`
+    unless sha
+      describe = `git describe --tags --always`.strip
+      sha = describe =~ /-g(.+)/ ? $1 : describe
+    end
+
+    sh("npm install && npm run production")
+  end
+
+  # JSON is valid YAML
+  data = YAML.load_file(File.join(repo_path, "dist/docs/data.json"))
+  data["project"]["sha"] = sha
+  File.open(File.expand_path("../data/#{output_path}", __FILE__), "w") do |f|
+    YAML.dump(data, f)
+  end
+
+  puts "Built #{repo_path} with SHA #{sha}"
+end
+
+def geocode_meetups
+  data_path = 'meetups.yml'
+  puts "Geocoding records from #{data_path}... "
+
+  data = YAML.load_file(File.expand_path("./data/#{data_path}"))
+  data["locations"].each do |loc|
+    loc["groups"].each do |group|
+      MeetupsData::GroupGeocoder.from_hash(group).find_location{|msg| puts msg}
+    end
+  end
+
+  File.open(File.expand_path("../data/#{data_path}", __FILE__), "w") do |f|
+    YAML.dump(data, f)
+  end
+end
+
+def find_meetup_organizers(update_all)
+  data_path = 'meetups.yml'
+
+  if ENV["MEETUP_API_KEY"].nil?
+    puts "Set ENV['MEETUP_API_KEY'] to connect to the meetup.com API"
+    return false
+  end
+
+  puts "Getting organizers data from api.meetup.com for #{data_path}..."
+
+  data = YAML.load_file(File.expand_path("./data/#{data_path}"))
+  data["locations"].each do |loc|
+    loc["groups"].each do |group|
+      MeetupsData::GroupOrganizer.from_hash(group).find_organizers(update_all)
+    end
+  end
+
+  File.open(File.expand_path("../data/#{data_path}", __FILE__), "w") do |f|
+    YAML.dump(data, f)
+  end
 end
 
 def build
@@ -63,7 +157,18 @@ end
 
 desc "Generate API Docs"
 task :generate_docs do
-  generate_docs
+  generate_ember_docs
+  generate_ember_data_docs
+end
+
+desc "Generate Ember Data docs only"
+task :generate_ember_data_docs do
+  generate_ember_data_docs
+end
+
+desc "Generate Ember docs only"
+task :generate_ember_docs do
+  generate_ember_docs
 end
 
 desc "Build the website"
@@ -75,14 +180,21 @@ desc "Preview"
 task :preview do
   require 'listen'
 
-  generate_docs
+  Rake::Task["generate_docs"].execute
 
-  paths = Dir.glob(File.join(ember_path, "packages/*/lib"))
-  listener = Listen.to(*paths, :filter => /\.js$/)
-  listener.change { generate_docs }
-  listener.start(false)
+  paths = Dir.glob(File.join(ember_path, "packages/*/lib")) +
+    Dir.glob(File.join(ember_data_path, "packages/*/lib"))
 
-  system "middleman server"
+  listener = Listen.to(*paths, :only => /\.js$/) do
+    Rake::Task["generate_docs"].execute
+  end
+  listener.start
+
+  trap :SIGINT do
+    exit 0
+  end
+
+  system "middleman server --reload-paths data/"
 end
 
 desc "Deploy the website to github pages"
@@ -98,7 +210,10 @@ task :deploy do |t, args|
     git_initialize("emberjs.github.com")
     git_update
 
-    build
+    unless build
+      puts "The build failed, stopping deploy. Please fix build errors before re-deploying."
+      exit 1
+    end
 
     # This screws up the build and isn't necessary
     # rm_r "source/examples"
@@ -111,4 +226,14 @@ task :deploy do |t, args|
     system "git commit -m '#{message.gsub("'", "\\'")}'"
     system "git push origin master" unless ENV['NODEPLOY']
   end
+end
+
+desc "Find coordinates for meetup locations"
+task :geocode do
+  geocode_meetups
+end
+
+desc "Find organizers for meetup user group_urlname"
+task :findorganizers do |t, args|
+  find_meetup_organizers(ENV['force'])
 end

@@ -1,49 +1,9 @@
-//= require ../../vendor/handlebars-1.0
-//= require ../../vendor/ember-1.0-rc-8
-//= require ../../vendor/moment
+//= require ember.debug
+//= require ember-template-compiler.js
+//= require moment
+//= require js-md5
 //= require ../../vendor/highlight
-//= require ../../vendor/md5
-
-$(function loadExamples() {
-  // Find all of the examples on the page
-  var $examples = $('.example-app');
-
-  // For each example, create a new Ember.Application
-  $examples.each(function() {
-    var $viewer = $('<div class="example-viewer"></div>');
-    var $output = $('<div class="example-output"></div>');
-
-    $(this).append($viewer)
-           .append($output);
-
-    // Extract configuration options for the example
-    // from attributes on the element
-    var name = this.getAttribute('data-name'),
-        fileNames = this.getAttribute('data-files');
-
-    fileNames = fileNames.split(' ');
-
-    var files = fileNames.map(function(file) {
-      return $.ajax('/javascripts/app/examples/'+name+'/'+file, {
-        dataType: 'text'
-      });
-    });
-
-    Ember.RSVP.all(files).then(function(files) {
-      files = files.map(function(file, i) {
-        return {
-          name: fileNames[i],
-          contents: file
-        };
-      });
-
-      return files;
-    }).then(function(files) {
-      generateViewerApp($viewer, files);
-      generateOutputApp($output, files);
-    });
-  });
-});
+//= require ./load-examples
 
 function buildLineNumbers(source) {
   var byLine = source.split("\n"),
@@ -55,18 +15,6 @@ function buildLineNumbers(source) {
 
   return "<pre>"+output.join('')+"</pre>";
 }
-
-Ember.Handlebars.helper('syntax-highlight', function(value, options) {
-  var highlighted = hljs.highlightAuto(value).value;
-  var lineNumbers = buildLineNumbers(highlighted);
-
-  var output = '<table class="CodeRay"><tr><td class="line-numbers">';
-  output += lineNumbers;
-  output += '</td><td class="code"><pre>' + highlighted + '</pre></td></tr></table>';
-
-  output = "<div class='example-highlight'>" + output + "</div>";
-  return new Ember.Handlebars.SafeString(output);
-});
 
 function generateViewerApp($elem, files) {
   // Scope the application to the example's
@@ -87,25 +35,73 @@ function generateViewerApp($elem, files) {
     }
   });
 
-  App.ApplicationController = Ember.ArrayController.extend({
-    selectTab: function(tab) {
-      this.set('selectedTab', tab);
+  App.ApplicationController = Ember.Controller.extend({
+
+    showTabs: false,
+
+    isMobile: false,
+
+    isNotMobile: Ember.computed.not('isMobile'),
+
+    shouldShowTabs: Ember.computed.or('showTabs', 'isNotMobile'),
+
+    _init: Ember.on('init', function() {
+      $(window).on('resize', function() {
+        Ember.run.debounce(this, this.onResize, 200);
+      }.bind(this));
+      this.onResize();
+    }),
+
+    onResize: function() {
+      if ($(window).width() < 992) {
+        this.set('isMobile', true);
+      } else {
+        this.set('isMobile', false);
+      }
+    },
+
+    actions: {
+      selectTab: function(tab) {
+        this.set('selectedTab', tab);
+        this.set('showTabs', false);
+      },
+      toggleTabs: function() {
+        this.toggleProperty('showTabs')
+      }
     }
   });
 
-  App.TabItemController = Ember.ObjectController.extend({
-    needs: 'application',
+  App.TabItemComponent = Ember.Component.extend({
+    tagName: 'span',
 
-    isSelected: function() {
-      return this.get('model') === this.get('controllers.application.selectedTab');
-    }.property('controllers.application.selectedTab')
+    click: function(e){
+      e.preventDefault();
+      this.sendAction('selectTab', this.get('item'));
+    },
+
+    isSelected: Ember.computed('selectedTab', 'item', function() {
+      return this.get('item') === this.get('selectedTab');
+    })
+
+  });
+
+  App.SyntaxHighlightHelper = Ember.Helper.helper(function(value, options) {
+    var highlighted = hljs.highlightAuto(value[0]).value;
+    var lineNumbers = buildLineNumbers(highlighted);
+
+    var output = '<table class="CodeRay"><tr><td class="line-numbers">';
+    output += lineNumbers;
+    output += '</td><td class="code"><pre>' + highlighted + '</pre></td></tr></table>';
+
+    output = "<div class='example-highlight'>" + output + "</div>";
+    return new Ember.Handlebars.SafeString(output);
   });
 }
 
-function registerComponent(container, name) {
+function registerComponent(container, name, application) {
   Ember.assert("You provided a template named 'components/" + name + "', but custom components must include a '-'", name.match(/-/));
 
-  container.injection('component:' + name, 'layout', 'template:components/' + name);
+  application.register('component:' + name, 'layout', 'template:components/' + name);
 
   var fullName = 'component:' + name;
   var Component = container.lookupFactory(fullName);
@@ -115,7 +111,7 @@ function registerComponent(container, name) {
     Component = container.lookupFactory(fullName);
   }
 
-  Ember.Handlebars.helper(name, Component);
+  Ember.Helper.helper(name, Component);
 }
 
 function generateOutputApp($elem, files) {
@@ -143,7 +139,7 @@ function generateOutputApp($elem, files) {
     ready: function() {
       for (var name in templates) {
         if (name.substr(0, 11) === "components/") {
-          registerComponent(this.__container__, name.substr(11, name.length));
+          registerComponent(this.__container__, name.substr(11, name.length), App);
         }
       }
     },
