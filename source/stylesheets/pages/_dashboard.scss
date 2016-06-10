@@ -1,6 +1,3 @@
-@import "variables";
-@import "mixins/hidpi";
-
 .dashboard {
   tr:nth-child(even) td {
     background-color: rgba(0, 0, 0, 0.02);

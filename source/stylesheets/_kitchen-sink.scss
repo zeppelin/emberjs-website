@@ -1,24 +1,4 @@
-@import 'compass/reset';
-@import 'compass/typography/text/ellipsis';
-@import 'bourbon';
-@import 'neat';
-@import 'variables';
-@import 'mixins/hidpi';
-@import 'fonts';
-@import 'header';
-@import 'footer';
-@import 'examples';
-@import 'about';
-@import 'guides';
-@import 'blog';
-@import 'builds';
-@import 'dashboard';
-@import 'shared';
-@import 'survey';
-@import 'components/legal';
-@import 'components/security';
-@import 'components/sponsors';
-@import 'components/logos';
+// This file contains the rules that were inside the old site.css extracted here.
 
 @mixin width-for-columns($cols) {
   width: $cols * $col-width + ($cols - 1) * $col-spacing;
@@ -2566,5 +2546,3 @@ a.edit-page {
     color: lighten($orange-color, 20%);
   }
 }
-
-@import 'highlight';

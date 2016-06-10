@@ -1,8 +1,3 @@
-@import "bourbon";
-@import "compass/css3/transform";
-@import "variables";
-@import "mixins/hidpi";
-
 // the builds page is an ember app inserted into the master layout, replicate styling
 // content -> builds page ( sidebar / subcontent )
 #subcontent {
@@ -298,12 +293,12 @@
     z-index:1;
     background-color:#999;
     color: #fff;
-    @include rotateX(180deg);
+    @include transform(rotateX(180deg));
     content:'Copied';
   }
 
   button.loading {
-    @include rotateX(180deg);
+    @include transform(rotateX(180deg));
   }
 
   .loading-spinner {
